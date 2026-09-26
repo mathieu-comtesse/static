@@ -1,0 +1,860 @@
+<title>Hôpital Saint-Pixel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Rubik:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --panel:#33405f; --panel-hi:#5a6a94; --panel-lo:#1b233a; --ink:#f4ecd0; --muted:#b4bcd4;
+  --accent:#ffcf3f; --lcd-bg:#0c1a10; --lcd:#86f06a; --bad:#ff7a6b; --good:#7ee081; --ground:#1d7a26;
+  --disp:'Pixelify Sans', 'Courier New', monospace; --body:'Rubik', system-ui, sans-serif;
+}
+[hidden]{display:none!important}
+html,body{height:100%;overflow:hidden;background:var(--ground);color:var(--ink);font-family:var(--body)}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#cv.tool{cursor:crosshair}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bev{background:var(--panel);border:2px solid;border-color:var(--panel-hi) var(--panel-lo) var(--panel-lo) var(--panel-hi)}
+.btn{background:var(--panel);border:2px solid;border-color:var(--panel-hi) var(--panel-lo) var(--panel-lo) var(--panel-hi);padding:6px 10px;display:inline-flex;align-items:center;gap:6px;font-family:var(--disp);font-size:15px;letter-spacing:.02em}
+.btn:hover{background:#3d4b70}
+.btn[aria-pressed="true"],.btn:active{border-color:var(--panel-lo) var(--panel-hi) var(--panel-hi) var(--panel-lo);background:#26304b;color:var(--accent)}
+.btn svg{width:18px;height:18px;flex:none}
+#bar{position:fixed;left:0;right:0;bottom:0;padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:8px;align-items:center;z-index:5}
+.lcd{background:var(--lcd-bg);color:var(--lcd);font-family:var(--disp);padding:4px 10px;border:2px solid;border-color:var(--panel-lo) var(--panel-hi) var(--panel-hi) var(--panel-lo);display:flex;flex-direction:column;line-height:1.1;min-width:130px;font-variant-numeric:tabular-nums}
+.lcd b{font-size:20px;font-weight:600}
+.lcd b.neg{color:var(--bad)}
+.lcd small{font-size:13px;opacity:.85}
+.grp{display:flex;gap:6px;flex-wrap:wrap}
+.rep{display:flex;flex-direction:column;gap:3px;min-width:150px;flex:1 1 160px;max-width:260px}
+.rep span{font-family:var(--disp);font-size:13px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.meter{height:10px;background:var(--panel-lo);border:1px solid #0b1020;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+#ticker{flex:1 1 100%;order:10;font-family:var(--disp);font-size:14px;color:var(--ink);background:var(--panel-lo);padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid #0b1020}
+#ticker em{font-style:normal;color:var(--accent)}
+.pop{position:fixed;z-index:6;padding:12px;max-height:min(60vh,520px);overflow:auto}
+#menu{left:12px;width:min(420px,calc(100% - 24px))}
+#info{right:12px;top:calc(12px + env(safe-area-inset-top,0px));width:min(270px,calc(100% - 24px))}
+.pop h2{font-family:var(--disp);font-size:20px;font-weight:600;margin:0 0 8px;color:var(--accent);text-wrap:balance}
+.pop h3{font-family:var(--disp);font-size:15px;font-weight:600;margin:12px 0 6px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.list{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;text-align:left;padding:7px 9px;background:#2a3551;border:1px solid #1b233a}
+button.row:hover{background:#3a4770}
+.row .sw{width:22px;height:22px;border:1px solid #0b1020}
+.row b{font-family:var(--disp);font-weight:600;font-size:15px;display:block}
+.row small{color:var(--muted);font-size:12px}
+.row .price{font-family:var(--disp);color:var(--lcd);font-variant-numeric:tabular-nums}
+.row.off{opacity:.5}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tabs .btn{font-size:13px;padding:4px 8px}
+.stars{display:inline-flex;gap:1px;vertical-align:-2px}
+.stars svg{width:11px;height:11px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13px;align-items:center}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-variant-numeric:tabular-nums}
+.bars{display:flex;flex-direction:column;gap:6px;margin-top:8px;font-size:12px;color:var(--muted)}
+.bars .meter i.low{background:var(--bad)}
+.bars .meter i.ok{background:var(--good)}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.x{position:absolute;right:8px;top:8px;background:none;border:0;padding:4px;color:var(--muted)}
+.x svg{width:16px;height:16px}
+#tip{position:fixed;z-index:7;pointer-events:none;font-family:var(--disp);font-size:14px;background:rgba(12,17,32,.9);color:var(--ink);padding:3px 7px;border:1px solid #000;white-space:nowrap}
+#tip.bad{color:var(--bad)}
+#overlay{position:fixed;inset:0;z-index:9;display:grid;place-items:center;background:rgba(10,14,28,.45);padding:16px}
+#overlay .card{max-width:440px;width:100%;padding:18px 20px;position:relative}
+#overlay h1{font-family:var(--disp);font-weight:700;font-size:30px;margin:0 0 6px;color:var(--accent);line-height:1.05;text-wrap:balance}
+#overlay p{margin:0 0 10px;line-height:1.5;font-size:14px;color:var(--ink)}
+#overlay ul{margin:0 0 14px;padding-left:18px;line-height:1.6;font-size:14px}
+.goal{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px;margin-bottom:8px}
+.goal .meter{grid-column:1/-1}
+.goal span:last-child{font-family:var(--disp);font-variant-numeric:tabular-nums}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4}
+@media (max-width:640px){ .lcd{min-width:110px} .lcd b{font-size:17px} .btn .lbl{display:none} .btn{padding:6px 8px} .rep{min-width:110px} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+
+<canvas id="cv" aria-label="Vue isométrique de l'hôpital"></canvas>
+
+<div id="bar" class="bev">
+  <div class="lcd"><b id="money">0 €</b><small id="date">Janvier 1997</small></div>
+  <div class="grp">
+    <button class="btn" data-menu="rooms" aria-pressed="false" title="Construire une pièce">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-6h6v6"/><path d="M12 7v4M10 9h4"/></svg><span class="lbl">Pièces</span></button>
+    <button class="btn" data-menu="corridor" aria-pressed="false" title="Équiper le couloir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M5 12v6M19 12v6M4 8h16"/></svg><span class="lbl">Couloir</span></button>
+    <button class="btn" data-menu="staff" aria-pressed="false" title="Personnel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 21c1-5 4-7 8-7s7 2 8 7"/></svg><span class="lbl">Personnel</span></button>
+    <button class="btn" data-menu="goals" aria-pressed="false" title="Objectifs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 21V3M5 4h12l-2 4 2 4H5"/></svg><span class="lbl">Objectifs</span></button>
+  </div>
+  <div class="grp" id="speed">
+    <button class="btn" data-speed="0" title="Pause (espace)"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+    <button class="btn" data-speed="1" title="Vitesse normale"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5l10 7-10 7z"/></svg></button>
+    <button class="btn" data-speed="3" title="Rapide"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5l9 7-9 7zM12 5l9 7-9 7z"/></svg></button>
+  </div>
+  <div class="rep"><span>Réputation <b id="repv" style="color:var(--ink)">0</b></span><div class="meter"><i id="repbar"></i></div></div>
+  <div id="ticker">Bienvenue.</div>
+</div>
+
+<div id="menu" class="pop bev" hidden></div>
+<div id="info" class="pop bev" hidden><button class="x" data-act="close" aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div id="ihead"></div><div id="ibody"></div></div>
+<div id="tip" hidden></div>
+<div id="overlay"><div class="card bev" id="ocard"></div></div>
+
+<script>
+'use strict';
+/* ================= constantes ================= */
+const TW=64, TH=32, MW=36, MH=30;
+const HX0=3, HY0=3, HX1=30, HY1=23;
+const ENT=[16,17];
+const WALL_H=58, LOW_H=9, DAY=3;
+const GOAL={money:60000, rep:650, cured:50};
+const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+
+const ROOMS={
+  gp:{name:'Cabinet médical',cost:2400,staff:'doctor',time:5,fee:150,floor:['#a79fd0'],wall:'#63b9e6',desc:'Diagnostique chaque patient',main:'gpdesk',decor:['cabinet','plant']},
+  pharmacy:{name:'Pharmacie',cost:2800,staff:'nurse',time:4,floor:['#c9c9d8','#a3a3ba'],wall:'#e6ecf4',desc:'Soigne Transparence et Fou rire',main:'counter',decor:['shelf','plant']},
+  psych:{name:'Psychiatrie',cost:3800,staff:'doctor',time:8,floor:['#cf9d98'],wall:'#efe9e9',desc:'Soigne Égocéphalie et Complexe du pirate',main:'couch',decor:['bookcase','plant']},
+  deflate:{name:'Dégonflage',cost:5200,staff:'doctor',time:7,floor:['#bcc9d8','#9aaabd'],wall:'#8fd3ee',desc:'Dégonfle les têtes gonflées',main:'inflator',decor:['cabinet']},
+  rest:{name:'Salle de repos',cost:1800,floor:['#a79fd0'],wall:'#8fe3ab',desc:'Le personnel fatigué y récupère'},
+  toilets:{name:'Toilettes',cost:1400,floor:['#d8d8e2','#aaaabc'],wall:'#f0f0f6',desc:'Les patients qui ont bu en ont besoin'},
+};
+const OBJS={
+  desk:{name:'Réception',cost:1500,desc:'Obligatoire : un réceptionniste y enregistre les arrivants',sw:'#c8894a'},
+  bench:{name:'Banc',cost:120,desc:'Les patients attendent assis, plus patients',sw:'#3fbf5a'},
+  plant:{name:'Plante',cost:60,desc:'Rend l’attente plus supportable autour',sw:'#2f9e44'},
+  drink:{name:'Distributeur',cost:500,desc:'Désaltère les patients, rapporte 20 € par canette',sw:'#d6333a'},
+};
+const DISEASES=[
+  {name:'Tête gonflée',room:'deflate',fee:1100,look:'bighead',w:3},
+  {name:'Transparence',room:'pharmacy',fee:500,look:'invisible',w:2},
+  {name:'Fou rire chronique',room:'pharmacy',fee:420,look:'laugh',w:3},
+  {name:'Égocéphalie',room:'psych',fee:850,look:'shades',w:2},
+  {name:'Complexe du pirate',room:'psych',fee:760,look:'patch',w:2},
+];
+const ROLES={
+  doctor:{name:'Médecin',sal:[1500,2600]},
+  nurse:{name:'Infirmier',sal:[900,1400]},
+  handyman:{name:'Agent d’entretien',sal:[500,750]},
+  receptionist:{name:'Réceptionniste',sal:[400,620]},
+};
+const FIRST=['Alice','Bruno','Chloé','Didier','Émile','Fanny','Gaston','Hélène','Inès','Jules','Karim','Léa','Marcel','Nadia','Odile','Pascal','Quentin','Rose','Sami','Thérèse','Ugo','Violette','Yann','Zoé','Gérard','Mireille','Lucien','Josette'];
+const LAST=['Martin','Bernard','Dubois','Lefèvre','Moreau','Girard','Roux','Fournier','Lambert','Bonnet','Mercier','Blanc','Garnier','Chevalier','Perrin','Morel','Gauthier','Robin','Clément','Masson'];
+
+/* ================= utilitaires ================= */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmt=n=>Math.round(n).toLocaleString('fr-FR')+' €';
+const shadeCache=new Map();
+function shade(hex,f){const k=hex+f;let c=shadeCache.get(k);if(c)return c;const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const m=f<0?0:255,a=Math.abs(f);r=Math.round(r+(m-r)*a);g=Math.round(g+(m-g)*a);b=Math.round(b+(m-b)*a);c=`rgb(${r},${g},${b})`;shadeCache.set(k,c);return c}
+function hash(x,y){let h=(x*374761393+y*668265263)^0x5bf03635;h=(h^(h>>>13))*1274126177;return ((h^(h>>>16))>>>0)/4294967296}
+
+/* ================= état ================= */
+let tiles, doors, rooms, cobjs, agents, floats, trees, uid, roomSeq;
+let G; // argent, réputation, temps
+let candidates={};
+function T(x,y){return (x>=0&&y>=0&&x<MW&&y<MH)?tiles[y*MW+x]:null}
+function ek(ax,ay,bx,by){return (ay<by||(ay===by&&ax<bx))?`${ax},${ay},${bx},${by}`:`${bx},${by},${ax},${ay}`}
+function zone(t){return t.floor?t.room:-1}
+const roomById=id=>rooms.find(r=>r.id===id);
+const desks=()=>cobjs.filter(o=>o.type==='desk');
+const services=()=>desks().concat(rooms.filter(r=>ROOMS[r.type].staff));
+const staffList=()=>agents.filter(a=>a.kind==='staff');
+const patients=()=>agents.filter(a=>a.kind==='patient');
+
+/* ================= déplacement ================= */
+function canMove(ax,ay,bx,by,goal){
+  const tb=T(bx,by); if(!tb) return false;
+  const ta=T(ax,ay);
+  if(zone(ta)!==zone(tb) && !doors.has(ek(ax,ay,bx,by))) return false;
+  if(tb.obj && !(goal && goal.x===bx && goal.y===by)) return false;
+  return true;
+}
+function findPath(sx,sy,gx,gy){
+  if(sx===gx&&sy===gy) return [];
+  const prev=new Int32Array(MW*MH).fill(-1), s=sy*MW+sx, g=gy*MW+gx, goal={x:gx,y:gy};
+  const q=[s]; prev[s]=s;
+  for(let i=0;i<q.length;i++){
+    const c=q[i]; if(c===g) break;
+    const cx=c%MW, cy=(c/MW)|0;
+    if(c!==s && T(cx,cy).obj) continue;
+    for(const [dx,dy] of DIRS){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=MW||ny>=MH)continue;const n=ny*MW+nx;if(prev[n]!==-1)continue;if(!canMove(cx,cy,nx,ny,goal))continue;prev[n]=c;q.push(n)}
+  }
+  if(prev[g]===-1) return null;
+  const path=[]; let c=g; while(c!==s){path.push([c%MW,(c/MW)|0]);c=prev[c]}
+  return path.reverse();
+}
+function flood(){
+  const seen=new Uint8Array(MW*MH), s=HY1*MW+ENT[0], q=[s]; seen[s]=1;
+  for(let i=0;i<q.length;i++){const c=q[i],cx=c%MW,cy=(c/MW)|0;
+    for(const [dx,dy] of DIRS){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=MW||ny>=MH)continue;const n=ny*MW+nx;if(seen[n]||!canMove(cx,cy,nx,ny,null))continue;seen[n]=1;q.push(n)}}
+  return seen;
+}
+function reach(seen,x,y){
+  if(seen[y*MW+x]) return true;
+  for(const [dx,dy] of DIRS){const nx=x+dx,ny=y+dy;if(T(nx,ny)&&seen[ny*MW+nx]&&canMove(nx,ny,x,y,{x,y}))return true}
+  return false;
+}
+function requiredTiles(){
+  const out=[];
+  for(const o of cobjs){ if(o.userSpot) out.push(o.userSpot); if(o.staffSpot) out.push(o.staffSpot); }
+  for(const r of rooms){ out.push({x:r.door.ox,y:r.door.oy}); if(r.userSpot) out.push(r.userSpot); if(r.staffSpot) out.push(r.staffSpot); for(const o of r.objs) if(o.type==='cubicle'||o.type==='sofa') out.push(o); }
+  return out;
+}
+const connected=()=>{const s=flood();return requiredTiles().every(p=>reach(s,p.x,p.y))};
+function reservedSet(){
+  const s=new Set();
+  for(const x of ENT){s.add(x+','+HY1);s.add(x+','+(HY1-1))}
+  for(const o of cobjs){ if(o.userSpot) s.add(o.userSpot.x+','+o.userSpot.y); if(o.staffSpot) s.add(o.staffSpot.x+','+o.staffSpot.y); }
+  for(const r of rooms){ s.add(r.door.ox+','+r.door.oy) }
+  return s;
+}
+
+/* ================= construction ================= */
+function roomCost(type,w,h){return ROOMS[type].cost+w*h*30}
+function norm(x0,y0,x1,y1){return [Math.min(x0,x1),Math.min(y0,y1),Math.max(x0,x1),Math.max(y0,y1)]}
+function pickDoor(x0,y0,x1,y1){
+  const by=(a,b,m)=>{const r=[];for(let i=a;i<=b;i++)r.push(i);return r.sort((p,q)=>Math.abs(p-m)-Math.abs(q-m))};
+  const mx=(x0+x1)/2, my=(y0+y1)/2, c=[];
+  for(const x of by(x0,x1,mx)) c.push([x,y1,x,y1+1]);
+  for(const y of by(y0,y1,my)) c.push([x1,y,x1+1,y]);
+  for(const y of by(y0,y1,my)) c.push([x0,y,x0-1,y]);
+  for(const x of by(x0,x1,mx)) c.push([x,y0,x,y0-1]);
+  for(const [x,y,ox,oy] of c){
+    if((x===x0&&y===y0)||(x===x1&&y===y0)) continue;
+    const t=T(ox,oy); if(t&&t.floor&&!t.room&&!t.obj) return {x,y,ox,oy};
+  }
+  return null;
+}
+function placeRoomObj(r,type,x,y){
+  const t=T(x,y); if(!t||t.room!==r.id||t.obj||(x===r.door.x&&y===r.door.y)) return null;
+  const o={type,x,y,room:r,sitter:null}; t.obj=o; r.objs.push(o); return o;
+}
+function removeRoomObj(r,o){T(o.x,o.y).obj=null; r.objs.splice(r.objs.indexOf(o),1)}
+function tryRoom(type,ax,ay,bx,by,commit){
+  const [x0,y0,x1,y1]=norm(ax,ay,bx,by), w=x1-x0+1, h=y1-y0+1, cost=roomCost(type,w,h);
+  const fail=msg=>({ok:false,msg,cost});
+  if(w<3||h<3) return fail('Trop petite : 3×3 minimum');
+  if(w>10||h>10) return fail('Trop grande : 10×10 maximum');
+  if(G.money<cost) return fail('Fonds insuffisants');
+  const res=reservedSet();
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const t=T(x,y);
+    if(!t||!t.floor||t.room||t.obj) return fail('Emplacement occupé');
+    if(res.has(x+','+y)) return fail('Garde ce passage libre');}
+  const door=pickDoor(x0,y0,x1,y1);
+  if(!door) return fail('Aucun accès au couloir');
+  const id=++roomSeq, def=ROOMS[type];
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++) T(x,y).room=id;
+  const r={id,type,kind:'room',name:def.name,x0,y0,x1,y1,door,objs:[],queue:[],busy:null,staff:null,served:0,cost,staffType:def.staff,time:def.time};
+  doors.set(ek(door.x,door.y,door.ox,door.oy),{room:id});
+  rooms.push(r);
+  if(def.main){ placeRoomObj(r,def.main,x0,y0); r.userSpot=def.main==='couch'?{x:x0,y:y0}:{x:x0,y:y0+1}; r.staffSpot={x:x0+1,y:y0}; }
+  if(type==='toilets') for(let x=x0;x<=x1;x++) placeRoomObj(r,'cubicle',x,y0);
+  if(type==='rest') placeRoomObj(r,'sofa',x0,y0);
+  const ok=connected();
+  if(!ok||!commit){ undoRoom(r); return ok?{ok:true,cost}:fail('Bloquerait un passage'); }
+  const decor=type==='rest'?[['tv',x1,y0],['pool',x0+1,y0+2],['plant',x1,y1]]:type==='toilets'?[['sink',x0,y1],['sink',x0+1,y1]]:(def.decor||[]).map((d,i)=>[d,...[[x1,y0],[x0,y1],[x1,y1]][i]]);
+  for(const [d,x,y] of decor){ if(type==='rest'&&d==='pool'&&(w<4||h<4)) continue; const o=placeRoomObj(r,d,x,y); if(o&&!connected()) removeRoomObj(r,o); }
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++) T(x,y).litter=null;
+  G.money-=cost; floatText(x0+w/2,y0+h/2,'-'+fmt(cost),'#ff8a7a');
+  return {ok:true,room:r};
+}
+function undoRoom(r){
+  for(const o of r.objs.slice()) removeRoomObj(r,o);
+  for(let y=r.y0;y<=r.y1;y++)for(let x=r.x0;x<=r.x1;x++) T(x,y).room=0;
+  doors.delete(ek(r.door.x,r.door.y,r.door.ox,r.door.oy));
+  rooms.splice(rooms.indexOf(r),1);
+}
+function demolish(r){
+  undoRoom(r); const refund=Math.round(r.cost*.5); G.money+=refund; floatText((r.x0+r.x1)/2+.5,(r.y0+r.y1)/2+.5,'+'+fmt(refund),'#a6f58f');
+  for(const a of agents.slice()){
+    if(a.kind==='patient'){ if(a.svc===r||(a.seat&&a.seat.room===r)) replan(a); }
+    else { if(a.svc===r){a.svc=null;staffIdle(a)} if(a.restRoom===r) staffIdle(a); }
+  }
+  if(sel&&sel.ref===r) select(null);
+  say(`${r.name} démolie. Remboursement : <em>${fmt(refund)}</em>`);
+}
+function tryObj(type,x,y,commit){
+  const cost=OBJS[type].cost, fail=msg=>({ok:false,msg,cost}), t=T(x,y);
+  if(G.money<cost) return fail('Fonds insuffisants');
+  if(!t||!t.floor||t.room||t.obj) return fail('Emplacement occupé');
+  const res=reservedSet(); if(res.has(x+','+y)) return fail('Garde ce passage libre');
+  const free=(p)=>{const u=T(p.x,p.y);return u&&u.floor&&!u.room&&!u.obj&&!res.has(p.x+','+p.y)};
+  const o={type,x,y,sitter:null};
+  if(type==='desk'){ o.kind='desk'; o.name='Réception'; o.staffType='receptionist'; o.time=2.2; o.queue=[]; o.busy=null; o.staff=null; o.served=0; o.staffSpot={x,y:y-1}; o.userSpot={x,y:y+1}; if(!free(o.staffSpot)||!free(o.userSpot)) return fail('Il faut de la place devant et derrière'); }
+  if(type==='drink'){ o.userSpot={x,y:y+1}; if(!free(o.userSpot)) return fail('Il faut de la place devant'); }
+  t.obj=o; cobjs.push(o);
+  const ok=connected();
+  if(!ok||!commit){ t.obj=null; cobjs.pop(); return ok?{ok:true,cost}:fail('Bloquerait un passage'); }
+  t.litter=null; G.money-=cost; floatText(x+.5,y+.5,'-'+fmt(cost),'#ff8a7a');
+  return {ok:true,obj:o};
+}
+function sellObj(o){
+  T(o.x,o.y).obj=null; cobjs.splice(cobjs.indexOf(o),1);
+  const refund=Math.round(OBJS[o.type].cost*.5); G.money+=refund;
+  if(o.sitter){const p=o.sitter; releaseSeat(p); p.svc?goWait(p):nextStep(p)}
+  for(const a of agents.slice()){ if(a.kind==='patient'&&a.svc===o) replan(a); if(a.kind==='staff'&&a.svc===o){a.svc=null;staffIdle(a)} if(a.drinkAt===o) {a.drinkAt=null; a.svc?goWait(a):nextStep(a)} }
+  if(sel&&sel.ref===o) select(null);
+}
+
+/* ================= agents ================= */
+class Agent{
+  constructor(kind,x,y){this.id=++uid;this.kind=kind;this.x=x+.5;this.y=y+.5;this.path=[];this.goal=null;this.onArrive=null;this.onFail=null;this.state='';this.timer=0;this.anim=Math.random()*9;this.face=1;this.pose='stand';this.speed=1.6;this.moving=false;this.stepOk=false}
+  get tx(){return Math.floor(this.x)} get ty(){return Math.floor(this.y)}
+}
+function goTo(a,gx,gy,cb,fail){
+  const p=findPath(a.tx,a.ty,gx,gy);
+  a.x=a.tx+.5; a.y=a.ty+.5; a.stepOk=false;
+  if(!p){a.path=[];a.goal=null;a.onArrive=null;fail&&fail();return false}
+  a.path=p; a.goal={x:gx,y:gy}; a.onArrive=cb; a.onFail=fail;
+  if(!p.length){a.onArrive=null;a.goal=null;cb&&cb()}
+  return true;
+}
+function moveAgent(a,dt){
+  if(!a.path.length){a.moving=false;return}
+  const [nx,ny]=a.path[0];
+  if(!a.stepOk){ if(!canMove(a.tx,a.ty,nx,ny,a.goal)){ const g=a.goal; if(g) goTo(a,g.x,g.y,a.onArrive,a.onFail); return } a.stepOk=true; }
+  const tx=nx+.5,ty=ny+.5,dx=tx-a.x,dy=ty-a.y,d=Math.hypot(dx,dy),s=a.speed*dt;
+  if(Math.abs(dx-dy)>.01) a.face=(dx-dy)>0?1:-1;
+  a.moving=true; a.anim+=dt;
+  if(d<=s){a.x=tx;a.y=ty;a.path.shift();a.stepOk=false;if(!a.path.length){a.moving=false;const cb=a.onArrive;a.onArrive=null;a.goal=null;cb&&cb()}}
+  else{a.x+=dx/d*s;a.y+=dy/d*s}
+}
+function faceTo(a,x,y){const d=(x-y)-(a.tx-a.ty);if(d) a.face=d>0?1:-1}
+function removeAgent(a){const i=agents.indexOf(a);if(i>=0)agents.splice(i,1);if(sel&&sel.ref===a)select(null)}
+function wander(a,r){for(let i=0;i<15;i++){const x=a.tx+ri(-r,r),y=a.ty+ri(-r,r),t=T(x,y);if(t&&t.floor&&!t.obj&&t.room===T(a.tx,a.ty).room){goTo(a,x,y);return}}}
+
+/* ----- patients ----- */
+function randomLook(){return {skin:pick(['#f1c7a3','#e3ad88','#c68c62','#8d5a3b','#f6d8bc']),hair:pick(['#2b1d14','#6b4423','#b8862f','#d9d4c7','#1a1a1a','#a0522d']),top:pick(['#c0392b','#8e6bb3','#3d7dca','#d98a2b','#5a8f3a','#b8b0a0','#7a5230','#d9667a']),bottom:pick(['#2f3b63','#3c3c44','#5a4631','#26436b'])}}
+function spawnPatient(){
+  let tot=DISEASES.reduce((s,d)=>s+d.w,0), r=Math.random()*tot, dis=DISEASES[0];
+  for(const d of DISEASES){r-=d.w;if(r<=0){dis=d;break}}
+  const p=new Agent('patient',pick(ENT),MH-1);
+  Object.assign(p,{look:randomLook(),dis,name:pick(FIRST)+' '+pick(LAST),health:100,patience:100,thirst:rnd(0,40),bladder:rnd(0,30),registered:false,diagnosed:false,svc:null,seat:null,speed:rnd(1.3,1.7)});
+  agents.push(p); nextStep(p);
+}
+function releaseSeat(p){ if(p.seat){ if(p.seat.sitter===p) p.seat.sitter=null; p.seat=null } p.pose='stand' }
+function leaveQueue(p){ const s=p.svc; if(s){const i=s.queue.indexOf(p);if(i>=0)s.queue.splice(i,1);if(s.busy===p)s.busy=null;p.svc=null} }
+function replan(p){ leaveQueue(p); releaseSeat(p); p.drinkAt=null; nextStep(p) }
+function bestOf(list){let b=null,bs=1e9;for(const s of list){const sc=s.queue.length+(s.busy?1:0)+(s.staff?0:4);if(sc<bs){bs=sc;b=s}}return b}
+function nextStep(p){
+  releaseSeat(p);
+  let s=null;
+  if(!p.registered){ s=bestOf(desks()); if(!s) announce('nodesk','Pas de réception : les patients errent. Place une <em>Réception</em> depuis Couloir.'); }
+  else if(!p.diagnosed){ s=bestOf(rooms.filter(r=>r.type==='gp')); if(!s) announce('nogp','Aucun <em>Cabinet médical</em> pour diagnostiquer les patients.'); }
+  else { s=bestOf(rooms.filter(r=>r.type===p.dis.room));
+    if(!s){ announce('no'+p.dis.room,`${p.dis.name} : aucun traitement. Construis <em>${ROOMS[p.dis.room].name}</em>.`); G.rep-=2; sendHome(p,'sad'); return; } }
+  if(!s){ p.state='lost'; p.timer=3; wander(p,3); return }
+  p.svc=s; s.queue.push(p); goWait(p);
+}
+function waitSpot(s){
+  const e=s.kind==='desk'?s.userSpot:{x:s.door.ox,y:s.door.oy};
+  let best=null,bd=1e9;
+  for(const o of cobjs) if(o.type==='bench'&&!o.sitter){const d=Math.abs(o.x-e.x)+Math.abs(o.y-e.y);if(d<bd&&d<=10){bd=d;best=o}}
+  if(best) return {x:best.x,y:best.y,bench:best};
+  const res=reservedSet();
+  for(let i=0;i<25;i++){const x=e.x+ri(-3,3),y=e.y+ri(-3,3),t=T(x,y);if(t&&t.floor&&!t.room&&!t.obj&&!res.has(x+','+y))return {x,y}}
+  return e;
+}
+function goWait(p){
+  releaseSeat(p);
+  const w=waitSpot(p.svc); p.state='toWait';
+  if(w.bench){w.bench.sitter=p;p.seat=w.bench}
+  goTo(p,w.x,w.y,()=>{p.state='waiting';if(p.seat)p.pose='sit'},()=>replan(p));
+}
+function sendHome(p,mood){
+  leaveQueue(p); releaseSeat(p); p.state='leaving'; p.mood=mood;
+  goTo(p,pick(ENT),MH-1,()=>removeAgent(p),()=>removeAgent(p));
+}
+function die(p,where){
+  leaveQueue(p); releaseSeat(p); p.state='dying'; p.timer=4.5; p.path=[]; p.pose='lie';
+  G.deaths++; G.rep-=12; say(`<em>${p.name}</em> est décédé${where?' en '+where:''}. Réputation en baisse.`);
+}
+function pay(n,x,y){G.money+=n;G.income+=n;floatText(x,y,'+'+fmt(n),'#a6f58f')}
+function staffMul(st){return (1.5-st.skill*.12)*(st.fatigue>80?1.5:1)}
+function finishService(s,p){
+  s.busy=null; s.served++; p.svc=null; p.pose='stand';
+  if(s.kind==='desk'){ p.registered=true; nextStep(p); return }
+  if(s.type==='gp'){ p.diagnosed=true; pay(ROOMS.gp.fee,p.x,p.y); nextStep(p); return }
+  if(Math.random()<.82+s.staff.skill*.035){ pay(p.dis.fee,p.x,p.y); G.cured++; G.rep+=6; p.look.cured=true; sendHome(p,'happy') }
+  else die(p,s.name);
+}
+function dispatch(){
+  for(const s of services()){
+    if(s.busy||!s.staff||s.staff.state!=='atPost') continue;
+    const p=s.queue.find(q=>q.state==='waiting'||q.state==='toWait'); if(!p) continue;
+    s.queue.splice(s.queue.indexOf(p),1); s.busy=p; releaseSeat(p); p.state='toService';
+    goTo(p,s.userSpot.x,s.userSpot.y,()=>{p.state='inService';p.timer=s.time*staffMul(s.staff);faceTo(p,s.staffSpot.x,s.staffSpot.y);if(s.type==='psych')p.pose='lie';if(s.staff)faceTo(s.staff,p.tx,p.ty)},()=>{s.busy=null;replan(p)});
+  }
+}
+function nearPlant(p){for(const o of cobjs)if(o.type==='plant'&&Math.abs(o.x-p.x+.5)+Math.abs(o.y-p.y+.5)<=3)return true;for(const r of rooms)for(const o of r.objs)if(o.type==='plant'&&Math.abs(o.x-p.x+.5)+Math.abs(o.y-p.y+.5)<=3)return true;return false}
+function nearLitter(p){let n=0;for(let y=p.ty-2;y<=p.ty+2;y++)for(let x=p.tx-2;x<=p.tx+2;x++){const t=T(x,y);if(t&&t.litter)n++}return n}
+function updatePatient(p,dt){
+  if(p.state==='dying'){p.timer-=dt;if(p.timer<=0)removeAgent(p);return}
+  moveAgent(p,dt);
+  if(p.state==='leaving') return;
+  p.health-=dt*.28; p.thirst+=dt*.35; p.bladder+=dt*.12;
+  const waiting=p.state==='waiting'||p.state==='toWait'||p.state==='lost';
+  if(waiting){let d=.62;if(p.pose==='sit')d*=.55;if(nearPlant(p))d*=.75;d*=1+nearLitter(p)*.15;p.patience-=d*dt}
+  if(p.health<=0){die(p);return}
+  if(p.patience<=0&&p.state!=='inService'&&p.state!=='toService'){G.rep-=4;say(`<em>${p.name}</em> en a assez d’attendre et rentre chez lui.`);sendHome(p,'angry');return}
+  if(Math.random()<dt*(p.canned?.03:.004)){const t=T(p.tx,p.ty);if(t&&t.floor&&!t.obj&&!t.litter){t.litter=p.canned?'can':(p.health<35&&Math.random()<.5?'vomit':'paper');p.canned=false}}
+  if(p.state==='lost'){p.timer-=dt;if(p.timer<=0){p.timer=3;nextStep(p)}return}
+  if(waiting&&p.thirst>75){const m=nearestDrink(p);if(m){releaseSeat(p);p.drinkAt=m;p.state='toDrink';goTo(p,m.userSpot.x,m.userSpot.y,()=>{p.state='drinking';p.timer=1.2;faceTo(p,m.x,m.y)},()=>{p.drinkAt=null;p.thirst=50;p.svc?goWait(p):nextStep(p)});return}}
+  if(waiting&&p.bladder>85){const c=freeCubicle(p);if(c){releaseSeat(p);c.sitter=p;p.seat=c;p.state='toToilet';goTo(p,c.x,c.y,()=>{p.state='toilet';p.timer=3},()=>{releaseSeat(p);p.bladder=60;p.svc?goWait(p):nextStep(p)});return}}
+  if(p.state==='drinking'){p.timer-=dt;if(p.timer<=0){pay(20,p.x,p.y);p.thirst=0;p.bladder+=35;p.canned=Math.random()<.6;p.drinkAt=null;p.svc?goWait(p):nextStep(p)}}
+  else if(p.state==='toilet'){p.timer-=dt;if(p.timer<=0){p.bladder=0;releaseSeat(p);p.svc?goWait(p):nextStep(p)}}
+  else if(p.state==='inService'){const s=p.svc;if(!s||!s.staff){if(s){s.busy=null;s.queue.unshift(p)}p.pose='stand';s?goWait(p):nextStep(p);return}p.timer-=dt;if(p.timer<=0)finishService(s,p)}
+}
+function nearestDrink(p){let b=null,bd=1e9;for(const o of cobjs)if(o.type==='drink'){const d=Math.abs(o.x-p.tx)+Math.abs(o.y-p.ty);if(d<bd){bd=d;b=o}}return b}
+function freeCubicle(p){for(const r of rooms)if(r.type==='toilets')for(const o of r.objs)if(o.type==='cubicle'&&!o.sitter)return o;return null}
+
+/* ----- personnel ----- */
+function makeCandidate(role){const R=ROLES[role],skill=ri(1,5);return {role,skill,name:pick(FIRST)+' '+pick(LAST),salary:Math.round((R.sal[0]+(R.sal[1]-R.sal[0])*(skill-1)/4+rnd(-60,60))/10)*10}}
+function refillCandidates(){for(const r in ROLES){candidates[r]=candidates[r]||[];while(candidates[r].length<3)candidates[r].push(makeCandidate(r))}}
+function hire(c){
+  const st=new Agent('staff',pick(ENT),MH-1);
+  Object.assign(st,{role:c.role,name:c.name,skill:c.skill,salary:c.salary,fatigue:0,svc:null,speed:2.2,look:randomLook(),restRoom:null,seat:null});
+  agents.push(st); staffIdle(st); return st;
+}
+function fire(st){
+  const s=st.svc;
+  if(s){ if(s.busy){const p=s.busy;s.busy=null;if(p.state==='inService'||p.state==='toService'){s.queue.unshift(p);goWait(p)}} s.staff=null }
+  if(st.cleanAt){st.cleanAt.claim=null}
+  if(st.seat&&st.seat.sitter===st) st.seat.sitter=null;
+  removeAgent(st); say(`${st.name} a été renvoyé.`);
+}
+function staffIdle(st){ if(st.seat&&st.seat.sitter===st) st.seat.sitter=null; st.seat=null; st.pose='stand'; st.restRoom=null; st.state='idle'; st.timer=.2; st.cleanAt=null }
+function assignTo(st,s){
+  s.staff=st; st.svc=s; st.state='toPost';
+  goTo(st,s.staffSpot.x,s.staffSpot.y,()=>{st.state='atPost';st.timer=1;faceTo(st,s.userSpot.x,s.userSpot.y)},()=>{s.staff=null;st.svc=null;staffIdle(st)});
+}
+function tryAssign(st){
+  if(st.role==='handyman'){
+    let best=null,bd=1e9;
+    for(const t of tiles) if(t.litter&&!t.claim){const d=Math.abs(t.x-st.tx)+Math.abs(t.y-st.ty);if(d<bd){bd=d;best=t}}
+    if(!best) return false;
+    best.claim=st; st.cleanAt=best; st.state='toClean';
+    goTo(st,best.x,best.y,()=>{st.state='cleaning';st.timer=1.4*staffMul(st)},()=>{best.claim=null;staffIdle(st)});
+    return true;
+  }
+  let best=null,bs=1e9;
+  for(const s of services()) if(s.staffType===st.role&&!s.staff){const e=s.staffSpot,sc=Math.abs(e.x-st.tx)+Math.abs(e.y-st.ty)-(s.queue.length?100:0);if(sc<bs){bs=sc;best=s}}
+  if(!best) return false; assignTo(st,best); return true;
+}
+function restRooms(){return rooms.filter(r=>r.type==='rest')}
+function goRest(st){
+  const rs=restRooms(); if(!rs.length) return false;
+  const r=rs[0]; st.restRoom=r; st.state='toRest';
+  const sofa=r.objs.find(o=>o.type==='sofa'&&!o.sitter);
+  let x,y;
+  if(sofa){sofa.sitter=st;st.seat=sofa;x=sofa.x;y=sofa.y}
+  else{const free=[];for(let yy=r.y0;yy<=r.y1;yy++)for(let xx=r.x0;xx<=r.x1;xx++)if(!T(xx,yy).obj)free.push([xx,yy]);[x,y]=pick(free)}
+  goTo(st,x,y,()=>{st.state='resting';if(st.seat)st.pose='sit'},()=>staffIdle(st));
+  return true;
+}
+function updateStaff(st,dt){
+  moveAgent(st,dt);
+  const s=st.svc;
+  if(st.state==='atPost') st.fatigue+=dt*(s&&s.busy&&s.busy.state==='inService'?.5:.07);
+  else if(st.state==='cleaning') st.fatigue+=dt*.35;
+  else if(st.moving) st.fatigue+=dt*.03;
+  st.fatigue=clamp(st.fatigue,0,100);
+  switch(st.state){
+    case 'idle':
+      st.timer-=dt; if(st.timer>0) break; st.timer=.8;
+      if(st.fatigue>70&&goRest(st)) break;
+      if(!tryAssign(st)&&!st.moving&&Math.random()<.3) wander(st,4);
+      break;
+    case 'atPost':
+      st.timer-=dt; if(st.timer>0) break; st.timer=1;
+      if(!(s.busy&&s.busy.state==='inService')&&st.fatigue>=75&&restRooms().length){s.staff=null;st.svc=null;goRest(st);break}
+      if(!s.busy&&!s.queue.length){const o=services().find(x=>x!==s&&x.staffType===st.role&&!x.staff&&x.queue.length);if(o){s.staff=null;assignTo(st,o)}}
+      break;
+    case 'resting':
+      st.fatigue-=dt*8; if(st.fatigue<5) staffIdle(st); break;
+    case 'cleaning':
+      st.timer-=dt; if(st.timer<=0){const t=st.cleanAt;if(t){t.litter=null;t.claim=null}staffIdle(st)} break;
+  }
+}
+
+/* ================= temps et économie ================= */
+function newGame(){
+  uid=0; roomSeq=0; tiles=[]; doors=new Map(); rooms=[]; cobjs=[]; agents=[]; floats=[]; trees=[]; candidates={};
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++) tiles.push({x,y,floor:x>=HX0&&x<=HX1&&y>=HY0&&y<=HY1,room:0,obj:null,litter:null,claim:null,path:ENT.includes(x)&&y>HY1});
+  for(const x of ENT) doors.set(ek(x,HY1,x,HY1+1),{entrance:true});
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const t=T(x,y);if(t.floor||t.path)continue;const nearH=x>=HX0-2&&x<=HX1+2&&y>=HY0-2&&y<=HY1+2;if(!nearH&&!(x>=ENT[0]-1&&x<=ENT[1]+1)&&hash(x,y)<.09)trees.push({x,y})}
+  G={money:1e9,rep:450,cured:0,deaths:0,t:0,day:0,month:0,year:1997,speed:0,arrive:4,income:0,announced:{},msgT:0,ended:false};
+  refillCandidates();
+  // Situation de départ : réception, cabinet médical, bancs, deux employés à leur poste
+  const d=tryObj('desk',13,20,true).obj;
+  const gp=tryRoom('gp',19,14,22,17,true).room;
+  for(const [x,y,t] of [[18,20,'bench'],[19,20,'bench'],[20,20,'bench'],[21,20,'plant'],[11,21,'bench'],[12,21,'bench'],[10,21,'plant'],[24,19,'drink']]) tryObj(t,x,y,true);
+  floats=[];
+  const rec=hire({role:'receptionist',name:'Josette Morel',skill:3,salary:500});
+  const doc=hire({role:'doctor',name:'Gérard Lambert',skill:3,salary:2000});
+  for(const [st,s] of [[rec,d],[doc,gp]]){st.x=s.staffSpot.x+.5;st.y=s.staffSpot.y+.5;s.staff=st;st.svc=s;st.state='atPost';st.timer=1;faceTo(st,s.userSpot.x,s.userSpot.y)}
+  G.money=30000;
+}
+function monthEnd(){
+  const sal=staffList().reduce((s,a)=>s+a.salary,0);
+  const litter=tiles.filter(t=>t.litter).length;
+  G.money-=sal; G.rep-=Math.min(30,litter);
+  say(`Fin ${MONTHS[G.month]} : recettes <em>${fmt(G.income)}</em>, salaires <em>-${fmt(sal)}</em>${litter?`, ${litter} détritus au sol`:''}.`);
+  G.income=0; G.month++; if(G.month>11){G.month=0;G.year++}
+  if(G.money<-10000) endGame(false,'La banque ferme l’hôpital : plus de 10 000 € de découvert.');
+}
+function update(dt){
+  G.t+=dt;
+  const prevDay=Math.floor((G.t-dt)/DAY), day=Math.floor(G.t/DAY);
+  if(day!==prevDay){G.day++; if(G.day%30===0) monthEnd()}
+  G.arrive-=dt;
+  if(G.arrive<=0){ G.arrive=clamp(12-G.rep/90,3,12)*rnd(.7,1.3); if(patients().length<70) spawnPatient(); }
+  for(const a of agents.slice()) a.kind==='patient'?updatePatient(a,dt):updateStaff(a,dt);
+  dispatch();
+  G.rep=clamp(G.rep,0,1000);
+  G.msgT-=dt;
+  if(G.msgT<=0){G.msgT=6;
+    for(const s of services()) if(!s.staff&&s.queue.length){const role=ROLES[s.staffType].name;const idle=staffList().some(a=>a.role===s.staffType&&a.state==='idle');announce('staff'+s.staffType,idle?`${role} en route vers ${s.name}.`:`${role} demandé : ${s.name}. Embauche depuis Personnel.`);break}
+    const tired=staffList().filter(a=>a.fatigue>80).length; if(tired&&!restRooms().length) announce('tired',`${tired} employé${tired>1?'s':''} épuisé${tired>1?'s':''} : construis une <em>Salle de repos</em>.`);
+    const lit=tiles.filter(t=>t.litter).length; if(lit>6&&!staffList().some(a=>a.role==='handyman')) announce('litter','Les couloirs sont sales : embauche un <em>Agent d’entretien</em>.');
+  }
+  if(!G.ended&&!G.won&&G.money>=GOAL.money&&G.rep>=GOAL.rep&&G.cured>=GOAL.cured){G.won=true;endGame(true)}
+}
+function announce(key,text){const now=G.t;if(G.announced[key]&&now-G.announced[key]<25)return;G.announced[key]=now;say(text)}
+
+/* ================= rendu ================= */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let DPR=1,VW=0,VH=0,cam={x:0,y:0,z:1},nowT=0;
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);VW=innerWidth;VH=innerHeight;cv.width=VW*DPR;cv.height=VH*DPR}
+function P(wx,wy,h=0){return [(wx-wy)*TW/2,(wx+wy)*TH/2-h]}
+function poly(pts,fill,stroke,lw=1){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke()}}
+const EDGE='rgba(20,16,30,.55)';
+function box(wx,wy,sw,sd,h,z,col,edge=EDGE){
+  poly([P(wx,wy+sd,z),P(wx+sw,wy+sd,z),P(wx+sw,wy+sd,z+h),P(wx,wy+sd,z+h)],shade(col,-.12),edge);
+  poly([P(wx+sw,wy+sd,z),P(wx+sw,wy,z),P(wx+sw,wy,z+h),P(wx+sw,wy+sd,z+h)],shade(col,-.3),edge);
+  poly([P(wx,wy,z+h),P(wx+sw,wy,z+h),P(wx+sw,wy+sd,z+h),P(wx,wy+sd,z+h)],col,edge);
+}
+function ell(x,y,rx,ry,fill,stroke){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
+function toWorld(mx,my){const sx=(mx-cam.x)/cam.z,sy=(my-cam.y)/cam.z,a=sx/(TW/2),b=sy/(TH/2);return {x:(a+b)/2,y:(b-a)/2}}
+
+function floorColor(t){
+  const {x,y}=t;
+  if(!t.floor){ if(t.path) return (x+y)%2?'#b9b6ae':'#aeaba3'; return (Math.floor((x+y)/2)&1)?'#39ad38':'#2f9d30'; }
+  if(t.room){const f=ROOMS[roomById(t.room).type].floor;return f.length>1?f[(x+y)&1]:f[0]}
+  return '#8a83b6';
+}
+function drawFloor(t){
+  const {x,y}=t, c=floorColor(t);
+  const pts=[P(x,y),P(x+1,y),P(x+1,y+1),P(x,y+1)];
+  poly(pts,c,t.floor?'rgba(40,30,70,.16)':null);
+  if(!t.floor&&!t.path){ctx.fillStyle='rgba(20,90,20,.55)';for(let i=0;i<3;i++){const [sx,sy]=P(x+hash(x+i,y)*0.8+.1,y+hash(x,y+i)*0.8+.1);ctx.fillRect(sx,sy,2,1)}}
+  if(t.litter){const [cx,cy]=P(x+.5+(hash(x,y)-.5)*.4,y+.5+(hash(y,x)-.5)*.4);
+    if(t.litter==='vomit'){ell(cx,cy,9,4,'#b6c23b');ell(cx+3,cy-1,4,2,'#d3de5c')}
+    else if(t.litter==='can'){ctx.fillStyle='#d6333a';ctx.fillRect(cx-4,cy-2,8,4);ctx.fillStyle='#eee';ctx.fillRect(cx+3,cy-2,2,4)}
+    else{poly([[cx-5,cy],[cx,cy-3],[cx+6,cy],[cx,cy+3]],'#f4f4ee','#999')}}
+}
+const WALLSTYLE={brick:{base:'#a2552f',band:'#843f21',line:'rgba(60,20,5,.35)'},corr:{base:'#e9e9f1',band:'#7ed69b',line:'rgba(90,90,130,.18)'}};
+function wallStyle(t){const z=zone(t);if(z<0)return WALLSTYLE.brick;if(z===0)return WALLSTYLE.corr;const c=ROOMS[roomById(z).type].wall;return {base:c,band:shade(c,-.18),line:'rgba(40,60,90,.18)'}}
+function lerpP(A,B,t,h){return P(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,h)}
+function face(A,B,t0,t1,h0,h1,fill,stroke){poly([lerpP(A,B,t0,h0),lerpP(A,B,t1,h0),lerpP(A,B,t1,h1),lerpP(A,B,t0,h1)],fill,stroke)}
+function drawWall(w){
+  const {A,B,h,st,dark,door,win}=w, k=dark?-.14:0;
+  face(A,B,0,1,0,h,shade(st.base,k),EDGE);
+  if(h>20){
+    face(A,B,0,1,0,h*.3,shade(st.band,k));
+    ctx.strokeStyle=st.line;ctx.lineWidth=1;ctx.beginPath();
+    for(let z=8;z<h-2;z+=8){const a=lerpP(A,B,0,z),b=lerpP(A,B,1,z);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1])}
+    for(let i=1;i<4;i++){const a=lerpP(A,B,i/4,0),b=lerpP(A,B,i/4,h);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1])}
+    ctx.stroke();
+    if(win){face(A,B,.2,.8,h*.42,h*.9,'#5a3a22',EDGE);face(A,B,.26,.74,h*.47,h*.85,dark?'#6fcf5a':'#86e06c');face(A,B,.49,.51,h*.47,h*.85,'#5a3a22')}
+  }
+  // chaperon
+  const a=P(A[0],A[1],h),b=P(B[0],B[1],h);ctx.strokeStyle='#f7f7fb';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  ctx.strokeStyle=EDGE;ctx.lineWidth=1;ctx.stroke();
+  if(door){
+    if(door.entrance){face(A,B,0,1,0,44,'#1f7a3a',EDGE);face(A,B,.08,.48,4,40,'rgba(170,220,240,.75)');face(A,B,.52,.92,4,40,'rgba(170,220,240,.75)')}
+    else{face(A,B,.12,.88,0,44,'#6b4020',EDGE);face(A,B,.2,.8,0,40,'#9a6232',EDGE);face(A,B,.28,.72,24,34,'#b98050');const kn=lerpP(A,B,.7,20);ell(kn[0],kn[1],1.6,1.6,'#e8c35a')}
+  }
+}
+function collectWalls(out){
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const Q=T(x,y);
+    for(const [px,py,A,B,dark] of [[x,y-1,[x,y],[x+1,y],false],[x-1,y,[x,y],[x,y+1],true]]){
+      const Pt=T(px,py); if(!Pt) continue;
+      const zp=zone(Pt), zq=zone(Q); if(zp===zq||(zp<0&&zq<0)) continue;
+      const low=zp>0||(zp===0&&zq<0);
+      const door=doors.get(ek(px,py,x,y));
+      out.push({k:x+y+.5,wall:{A,B,h:low?LOW_H:WALL_H,st:wallStyle(Q),dark,door,win:!low&&zp<0&&!door&&(x+y)%3===0}});
+    }
+  }
+}
+function drawObj(o){
+  const x=o.x,y=o.y;
+  switch(o.type){
+    case 'bench':box(x+.1,y+.35,.8,.35,5,0,'#6d7280');box(x+.1,y+.35,.8,.35,3,5,'#3fbf5a');box(x+.1,y+.25,.8,.1,13,5,'#33a64c');break;
+    case 'plant':{box(x+.36,y+.36,.28,.28,12,0,'#ececf2');const [cx,cy]=P(x+.5,y+.5,14);for(const [dx,dy,c] of [[-7,-4,'#2f8f3d'],[7,-4,'#2f8f3d'],[0,-10,'#3aa84b'],[-4,-15,'#4cc05c'],[5,-14,'#45b554'],[0,-20,'#57cf66']])ell(cx+dx,cy+dy,6,4,c,'rgba(0,40,0,.4)');break}
+    case 'drink':{box(x+.2,y+.15,.6,.55,46,0,'#d6333a');face([x+.2,y+.7],[x+.8,y+.7],.12,.6,12,40,'#ffe6a6',EDGE);for(let i=0;i<3;i++)face([x+.2,y+.7],[x+.8,y+.7],.18+i*.13,.26+i*.13,26,36,['#3d7dca','#5a8f3a','#e87b2b'][i]);face([x+.2,y+.7],[x+.8,y+.7],.68,.9,20,30,'#222');break}
+    case 'desk':box(x+.05,y+.28,.9,.45,18,0,'#c8894a');box(x+.05,y+.28,.9,.45,2,18,'#dca06a');box(x+.55,y+.32,.24,.18,13,20,'#e2e2ea');face([x+.55,y+.5],[x+.79,y+.5],.12,.88,23,31,'#3b6fa8');break;
+    case 'gpdesk':box(x+.1,y+.2,.8,.6,16,0,'#9a5f36');box(x+.1,y+.2,.8,.6,2,16,'#b97a4a');box(x+.52,y+.26,.26,.2,13,18,'#e5e5ea');face([x+.52,y+.46],[x+.78,y+.46],.12,.88,21,29,'#3b6fa8');box(x+.2,y+.45,.22,.2,1,18,'#fafafa');break;
+    case 'cabinet':box(x+.2,y+.15,.55,.5,40,0,'#9ea5b0');for(const z of [13,26])face([x+.2,y+.65],[x+.75,y+.65],0,1,z,z+1,'#6b7280');for(const z of [7,20,33])face([x+.2,y+.65],[x+.75,y+.65],.4,.6,z,z+2,'#e0e0e6');break;
+    case 'counter':box(x+.1,y+.2,.8,.55,20,0,'#eef0f6');face([x+.1,y+.75],[x+.9,y+.75],0,1,12,16,'#63b9e6');[['#d6333a',.2],['#3aa84b',.42],['#3d7dca',.64]].forEach(([c,o])=>box(x+o,y+.35,.09,.09,9,20,c));break;
+    case 'shelf':box(x+.15,y+.1,.7,.3,48,0,'#f2f2f7');for(let r=0;r<3;r++)for(let i=0;i<5;i++)face([x+.15,y+.4],[x+.85,y+.4],.08+i*.18,.18+i*.18,8+r*13,16+r*13,['#d6333a','#3d7dca','#3aa84b','#e8c35a','#8e6bb3'][(i+r)%5]);break;
+    case 'couch':box(x+.12,y+.2,.78,.6,9,0,'#5e321c');box(x+.12,y+.2,.78,.6,4,9,'#8a4b2c');box(x+.12,y+.2,.2,.6,12,13,'#6e3b22');break;
+    case 'bookcase':box(x+.1,y+.1,.8,.3,52,0,'#7a4a26');for(let r=0;r<4;r++){face([x+.1,y+.4],[x+.9,y+.4],.05,.95,4+r*12,5+r*12,'#4a2a12');for(let i=0;i<7;i++)face([x+.1,y+.4],[x+.9,y+.4],.08+i*.12,.16+i*.12,6+r*12,13+r*12,['#c0392b','#2f5fb3','#e8c35a','#3aa84b','#8e6bb3','#eeeeee','#d98a2b'][(i*3+r)%7])}break;
+    case 'inflator':{box(x+.1,y+.18,.8,.66,24,0,'#2d7fbf');face([x+.1,y+.84],[x+.9,y+.84],.15,.85,6,18,'#1e5f94');const [cx,cy]=P(x+.48,y+.5,24);ell(cx,cy,20,11,'#5fb4e8',EDGE);ell(cx-4,cy-3,8,4,'rgba(255,255,255,.5)');box(x+.74,y+.22,.12,.12,46,0,'#9aa3ad');const [gx,gy]=P(x+.8,y+.28,50);ell(gx,gy,8,8,'#fafafa',EDGE);ctx.strokeStyle='#d6333a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+Math.cos(nowT*2)*5,gy-Math.abs(Math.sin(nowT*2))*5);ctx.stroke();break}
+    case 'sofa':box(x+.05,y+.3,.9,.5,10,0,'#e8d189');box(x+.05,y+.2,.9,.14,22,0,'#d7bd6c');box(x+.05,y+.3,.1,.5,17,0,'#d7bd6c');box(x+.85,y+.3,.1,.5,17,0,'#d7bd6c');break;
+    case 'tv':box(x+.42,y+.42,.16,.16,20,0,'#3a3a40');box(x+.2,y+.36,.6,.26,26,20,'#1d1d22');face([x+.2,y+.62],[x+.8,y+.62],.1,.9,23,43,`hsl(${200+Math.sin(nowT*3)*30},60%,${40+Math.sin(nowT*7)*10}%)`);break;
+    case 'pool':{box(x+.05,y+.18,.9,.64,16,0,'#6b3a1f');box(x+.12,y+.25,.76,.5,1,16,'#1f8f3a');const cols=['#fafafa','#e8c35a','#d6333a','#3d7dca','#222'];cols.forEach((c,i)=>{const [bx,by]=P(x+.25+i*.13,y+.4+(i%2)*.15,18);ell(bx,by,2.2,1.6,c)});break}
+    case 'cubicle':box(x,y,1,.08,30,0,'#3b8fd4');box(x+.35,y+.1,.3,.12,18,0,'#e8e8ee');box(x+.35,y+.2,.3,.3,10,0,'#f7f7f7');box(x+.92,y+.08,.08,.8,26,0,'#3b8fd4');break;
+    case 'sink':box(x+.4,y+.3,.2,.2,16,0,'#e8e8ee');box(x+.24,y+.2,.52,.42,6,16,'#fafafa');break;
+  }
+}
+function drawTree(t){const [sx,sy]=P(t.x+.5,t.y+.5);ell(sx,sy,14,6,'rgba(0,0,0,.2)');ctx.fillStyle='#6b4423';ctx.fillRect(sx-2,sy-26,4,26);const s=.8+hash(t.x,t.y)*.5;for(const [dx,dy,r,c] of [[0,-40,15,'#2f8f3d'],[-8,-32,10,'#27803a'],[8,-33,11,'#2a8a3a'],[-3,-46,9,'#3aa84b']])ell(sx+dx*s,sy+dy*s,r*s,r*s*.85,c,'rgba(0,40,0,.35)')}
+
+function drawBody(a,L){
+  const walk=a.moving?Math.sin(a.anim*11):0, sit=a.pose==='sit', inv=L.dz==='invisible';
+  const kind=a.kind==='staff'?a.role:'patient';
+  const top=kind==='doctor'?'#f5f5f5':kind==='nurse'?'#9fd3f0':kind==='handyman'?'#2f5fb3':kind==='receptionist'?'#3aa86b':L.top;
+  const bot=kind==='handyman'?'#2f5fb3':kind==='nurse'?'#f2f2f2':L.bottom;
+  if(sit){ctx.fillStyle=bot;ctx.fillRect(-5,-14,11,5);ctx.fillRect(3,-14,4,12);ctx.fillStyle='#2a1a10';ctx.fillRect(3,-3,6,3);ctx.translate(0,4)}
+  else{const l1=Math.max(0,walk)*2,l2=Math.max(0,-walk)*2;ctx.fillStyle=bot;ctx.fillRect(-4.5,-15+l1,4,15-l1);ctx.fillRect(.5,-15+l2,4,15-l2);ctx.fillStyle='#2a1a10';ctx.fillRect(-5,-2+0*l1,5,2.5);ctx.fillRect(0,-2,5.5,2.5)}
+  const sw=a.moving?walk*2:0;
+  ctx.fillStyle=top;ctx.strokeStyle=EDGE;ctx.lineWidth=1;
+  if(kind==='nurse'){ctx.beginPath();ctx.moveTo(-6,-32);ctx.lineTo(6,-32);ctx.lineTo(8,-13);ctx.lineTo(-8,-13);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#fafafa';ctx.fillRect(-3,-28,6,13)}
+  else if(kind==='doctor'){ctx.fillRect(-7,-32,14,22);ctx.strokeRect(-7,-32,14,22);ctx.strokeStyle='#999';ctx.beginPath();ctx.moveTo(0,-32);ctx.lineTo(0,-12);ctx.stroke();ctx.strokeStyle='#333';ctx.beginPath();ctx.arc(1,-27,3,0,Math.PI);ctx.stroke()}
+  else{ctx.fillRect(-6.5,-32,13,18);ctx.strokeRect(-6.5,-32,13,18);if(kind==='handyman'){ctx.fillStyle='#e8c35a';ctx.fillRect(-6.5,-24,13,2)}}
+  ctx.fillStyle=top;ctx.fillRect(-9.5,-31+sw,3.5,13);ctx.fillRect(6,-31-sw,3.5,13);
+  if(!inv){ctx.fillStyle=L.skin;ctx.fillRect(-9.5,-18.5+sw,3.5,3);ctx.fillRect(6,-18.5-sw,3.5,3)}
+  const big=L.dz==='bighead', r=big?10:5.8, hy=-37.5-(r-5.8);
+  if(inv) return hy-r;
+  const jit=L.dz==='laugh'?Math.sin(nowT*40)*.8:0;
+  ctx.fillStyle=L.skin;ctx.fillRect(-2,-34,4,3);
+  ell(jit,hy,r,r,L.skin,EDGE);
+  ctx.fillStyle=L.hair;ctx.beginPath();ctx.arc(jit,hy,r,Math.PI*1.05,Math.PI*1.95);ctx.fill();
+  ctx.fillStyle='#1a1a1a';ctx.fillRect(jit+1.5,hy-.5,1.4,1.6);ctx.fillRect(jit+r-2,hy-.5,1.4,1.6);
+  if(L.dz==='laugh'){ell(jit+r*.55,hy+r*.5,2.4,1.8,'#5a1010')}
+  else{ctx.fillStyle='#6a2a1a';ctx.fillRect(jit+r*.4,hy+r*.55,3,1)}
+  if(big){ctx.strokeStyle='rgba(200,60,60,.5)';ctx.beginPath();ctx.moveTo(-5,hy-5);ctx.lineTo(-1,hy-7);ctx.moveTo(-6,hy+1);ctx.lineTo(-3,hy);ctx.stroke()}
+  if(L.dz==='shades'){ctx.fillStyle='#111';ctx.fillRect(jit,hy-1.8,r+1,3);ctx.fillStyle='#e8c35a';ctx.beginPath();ctx.moveTo(-4,hy-r+1);ctx.lineTo(-4,hy-r-4);ctx.lineTo(-1.5,hy-r-1.5);ctx.lineTo(0,hy-r-5);ctx.lineTo(1.5,hy-r-1.5);ctx.lineTo(4,hy-r-4);ctx.lineTo(4,hy-r+1);ctx.fill()}
+  if(L.dz==='patch'){ctx.fillStyle='#111';ctx.fillRect(jit+r-3,hy-2,3.5,3.5);ctx.strokeStyle='#111';ctx.beginPath();ctx.moveTo(jit-r,hy-3);ctx.lineTo(jit+r,hy-1);ctx.stroke();ctx.fillStyle='#c0392b';ctx.fillRect(jit-r,hy-r+1,2*r,2.5)}
+  if(kind==='nurse'){ctx.fillStyle='#fafafa';ctx.fillRect(-4,hy-r-2,8,3.5);ctx.fillStyle='#d6333a';ctx.fillRect(-.8,hy-r-1.6,1.6,2.6)}
+  if(kind==='handyman'){ctx.fillStyle='#2f5fb3';ctx.beginPath();ctx.arc(0,hy-1,r+.5,Math.PI,0);ctx.fill();ctx.fillRect(0,hy-2,r+4,2)}
+  if(kind==='doctor'){ell(r*.3,hy-r+1,2.4,2.4,'#dfe6ee','#777')}
+  return hy-r;
+}
+function drawPerson(a){
+  const [sx,sy]=P(a.x,a.y); const L={...a.look,dz:a.kind==='patient'&&!a.look.cured?a.dis.look:null};
+  ctx.save();ctx.translate(sx,sy+3);
+  if(a.state==='dying'&&a.timer<3){
+    const t=3-a.timer;ctx.globalAlpha=Math.max(0,1-t/3)*.8;ctx.translate(0,-t*18);
+    ell(-9,-26,6,9,'#fafafa');ell(9,-26,6,9,'#fafafa');ctx.fillStyle='#fafafa';ctx.fillRect(-6,-32,12,24);ell(0,-38,6,6,'#fafafa');ell(0,-47,6,2,null,'#e8c35a');ctx.restore();return;
+  }
+  const lying=a.pose==='lie';
+  if(!lying) ell(0,0,10,4.5,'rgba(0,0,0,.28)');
+  if(a===(sel&&sel.ref)) ell(0,0,13,6,null,'#ffcf3f');
+  if(lying){ctx.translate(-8,a.state==='dying'?-2:-12);ctx.rotate(-1.45)}
+  else if(a.face<0) ctx.scale(-1,1);
+  const top=drawBody(a,L);
+  ctx.restore();
+  if(!lying) drawBubble(a,sx,sy+3+top-12);
+}
+function drawBubble(a,x,y){
+  let ic=null;
+  if(a.kind==='patient'){if(a.state==='leaving')ic=a.mood==='happy'?'heart':a.mood==='angry'?'angry':null;else if(a.patience<30)ic='angry';else if(a.thirst>75)ic='drop';else if(a.state==='lost')ic='?'}
+  else if(a.state==='resting')ic='z';
+  if(!ic)return;
+  ell(x,y,7,7,'#fffbe6',EDGE);
+  if(ic==='heart'){ctx.fillStyle='#e0406a';ctx.beginPath();ctx.moveTo(x,y+4);ctx.bezierCurveTo(x-7,y-1,x-3,y-6,x,y-2);ctx.bezierCurveTo(x+3,y-6,x+7,y-1,x,y+4);ctx.fill()}
+  else if(ic==='angry'){ell(x,y,5,5,'#e0453a');ctx.fillStyle='#222';ctx.fillRect(x-3,y-2,2,1.5);ctx.fillRect(x+1,y-2,2,1.5);ctx.fillRect(x-2,y+2,4,1)}
+  else if(ic==='drop'){ctx.fillStyle='#3d8fe0';ctx.beginPath();ctx.moveTo(x,y-5);ctx.quadraticCurveTo(x+5,y+1,x,y+4);ctx.quadraticCurveTo(x-5,y+1,x,y-5);ctx.fill()}
+  else{ctx.fillStyle='#33405f';ctx.font='700 11px "Pixelify Sans",monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ic,x,y+1)}
+}
+function floatText(x,y,text,color){floats.push({x,y,text,color,t:0})}
+
+function draw(){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#1d7a26';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.setTransform(DPR*cam.z,0,0,DPR*cam.z,DPR*cam.x,DPR*cam.y);
+  const vl=-cam.x/cam.z-TW,vr=(VW-cam.x)/cam.z+TW,vt=-cam.y/cam.z-80,vb=(VH-cam.y)/cam.z+TH;
+  for(const t of tiles){const [sx,sy]=P(t.x,t.y);if(sx<vl||sx>vr||sy<vt||sy>vb)continue;drawFloor(t)}
+  // aperçu de construction
+  if(tool&&hover){
+    if(tool.kind==='room'&&drag){const [x0,y0,x1,y1]=norm(drag.x0,drag.y0,drag.x1,drag.y1);const c=preview&&preview.ok?'rgba(120,255,120,.35)':'rgba(255,90,90,.4)';for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(T(x,y))poly([P(x,y),P(x+1,y),P(x+1,y+1),P(x,y+1)],c,'rgba(255,255,255,.5)')}
+    else if(tool.kind==='room'){const {x,y}=hover;poly([P(x,y),P(x+1,y),P(x+1,y+1),P(x,y+1)],'rgba(255,255,255,.3)','#fff')}
+  }
+  if(sel&&sel.kind==='room'){const r=sel.ref;poly([P(r.x0,r.y0),P(r.x1+1,r.y0),P(r.x1+1,r.y1+1),P(r.x0,r.y1+1)],'rgba(255,207,63,.15)','#ffcf3f',2)}
+  const items=[];
+  collectWalls(items);
+  for(const t of tiles) if(t.obj) items.push({k:t.x+t.y+1,obj:t.obj});
+  for(const t of trees) items.push({k:t.x+t.y+1,tree:t});
+  for(const a of agents) items.push({k:a.x+a.y+.02,agent:a});
+  if(tool&&tool.kind==='obj'&&hover&&preview) items.push({k:hover.x+hover.y+1,obj:{type:tool.k,x:hover.x,y:hover.y},ghost:preview.ok?.65:.35});
+  items.sort((a,b)=>a.k-b.k);
+  for(const it of items){
+    if(it.wall) drawWall(it.wall);
+    else if(it.obj){if(it.ghost){ctx.globalAlpha=it.ghost;drawObj(it.obj);ctx.globalAlpha=1}else{drawObj(it.obj);if(sel&&sel.ref===it.obj){const o=it.obj;poly([P(o.x,o.y),P(o.x+1,o.y),P(o.x+1,o.y+1),P(o.x,o.y+1)],null,'#ffcf3f',2)}}}
+    else if(it.tree) drawTree(it.tree);
+    else drawPerson(it.agent);
+  }
+  ctx.font='600 14px "Pixelify Sans",monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=3;
+  for(const f of floats){const [sx,sy]=P(f.x,f.y,50+f.t*22);ctx.globalAlpha=clamp(2.2-f.t,0,1);ctx.strokeStyle='#10131f';ctx.strokeText(f.text,sx,sy);ctx.fillStyle=f.color;ctx.fillText(f.text,sx,sy)}
+  ctx.globalAlpha=1;
+}
+
+/* ================= interface ================= */
+const $=s=>document.querySelector(s);
+let tool=null,hover=null,drag=null,preview=null,sel=null,openMenu=null,staffTab='doctor';
+const STAR='<svg viewBox="0 0 24 24"><path fill="#ffcf3f" d="M12 2l3 7h7l-5.5 4.5 2 7.5-6.5-4.5-6.5 4.5 2-7.5L2 9h7z"/></svg>';
+const STAR0='<svg viewBox="0 0 24 24"><path fill="#4b5577" d="M12 2l3 7h7l-5.5 4.5 2 7.5-6.5-4.5-6.5 4.5 2-7.5L2 9h7z"/></svg>';
+const stars=n=>`<span class="stars" aria-label="${n} sur 5">${STAR.repeat(n)}${STAR0.repeat(5-n)}</span>`;
+function say(html){$('#ticker').innerHTML=`<span style="color:var(--muted)">${MONTHS[G.month].slice(0,4)}. ${G.year} ·</span> ${html}`}
+function barW(){return $('#bar').getBoundingClientRect().height}
+function positionPops(){$('#menu').style.bottom=(barW()+8)+'px'}
+function setTool(t){tool=t;drag=null;preview=null;cv.classList.toggle('tool',!!t);$('#tip').hidden=true;if(t){closeMenu();select(null);say(t.kind==='room'?`Glisse sur le sol pour tracer : <em>${ROOMS[t.k].name}</em>. Échap ou clic droit pour annuler.`:`Clique sur le couloir pour poser : <em>${OBJS[t.k].name}</em>. Échap pour arrêter.`)}}
+function closeMenu(){openMenu=null;$('#menu').hidden=true;document.querySelectorAll('[data-menu]').forEach(b=>b.setAttribute('aria-pressed','false'))}
+function toggleMenu(name){if(openMenu===name){closeMenu();return}openMenu=name;document.querySelectorAll('[data-menu]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.menu===name)));renderMenu();$('#menu').hidden=false;positionPops()}
+function renderMenu(){
+  const m=$('#menu');let h='';
+  if(openMenu==='rooms'){h='<h2>Construire une pièce</h2><div class="list">'+Object.entries(ROOMS).map(([k,r])=>`<button class="row${G.money<r.cost+270?' off':''}" data-act="room" data-k="${k}"><span class="sw" style="background:${r.wall}"></span><span><b>${r.name}</b><small>${r.desc}</small></span><span class="price">${fmt(r.cost+270)}</span></button>`).join('')+'</div><p class="hint">Prix pour 3×3, puis 30 € par case. La porte se place seule sur le côté qui donne au couloir.</p>'}
+  else if(openMenu==='corridor'){h='<h2>Équiper le couloir</h2><div class="list">'+Object.entries(OBJS).map(([k,o])=>`<button class="row${G.money<o.cost?' off':''}" data-act="obj" data-k="${k}"><span class="sw" style="background:${o.sw}"></span><span><b>${o.name}</b><small>${o.desc}</small></span><span class="price">${fmt(o.cost)}</span></button>`).join('')+'</div>'}
+  else if(openMenu==='staff'){
+    h='<h2>Personnel</h2><div class="tabs">'+Object.entries(ROLES).map(([k,r])=>`<button class="btn" data-act="tab" data-k="${k}" aria-pressed="${k===staffTab}">${r.name}</button>`).join('')+'</div><div class="list">'+
+      candidates[staffTab].map((c,i)=>`<div class="row"><span class="sw" style="background:${staffTab==='doctor'?'#f5f5f5':staffTab==='nurse'?'#9fd3f0':staffTab==='handyman'?'#2f5fb3':'#3aa86b'}"></span><span><b>${c.name}</b>${stars(c.skill)} <small>${fmt(c.salary)}/mois</small></span><button class="btn" data-act="hire" data-i="${i}">Embaucher</button></div>`).join('')+'</div>';
+    const team=staffList();
+    h+=`<h3>Équipe (${team.length}) · ${fmt(team.reduce((s,a)=>s+a.salary,0))}/mois</h3><div class="list">`+team.map(a=>`<button class="row" data-act="pickagent" data-id="${a.id}"><span class="sw" style="background:${a.fatigue>80?'#ff7a6b':a.fatigue>50?'#ffcf3f':'#7ee081'}" title="Fatigue"></span><span><b>${a.name}</b><small>${ROLES[a.role].name} · ${stateLabel(a)}</small></span><span>${stars(a.skill)}</span></button>`).join('')+'</div>';
+  }
+  else if(openMenu==='goals'){h='<h2>Objectifs du niveau</h2>'+goalHTML()+`<p class="hint">Guérisons ${G.cured} · décès ${G.deaths} · patients présents ${patients().length}</p>`}
+  m.innerHTML=h;
+}
+function goalHTML(){const g=(l,v,t,f)=>`<div class="goal"><span>${l}</span><span>${f(v)} / ${f(t)}</span><div class="meter"><i class="${v>=t?'ok':''}" style="width:${clamp(v/t*100,0,100)}%;${v>=t?'background:var(--good)':''}"></i></div></div>`;return g('Trésorerie',Math.max(0,G.money),GOAL.money,fmt)+g('Réputation',G.rep,GOAL.rep,v=>Math.round(v))+g('Patients guéris',G.cured,GOAL.cured,v=>v)}
+function stateLabel(a){
+  if(a.kind==='staff')return {idle:'Disponible',toPost:'Rejoint son poste',atPost:a.svc?(a.svc.busy&&a.svc.busy.state==='inService'?'Au travail : ':'En poste : ')+a.svc.name:'En poste',toRest:'Va se reposer',resting:'Se repose',toClean:'Va nettoyer',cleaning:'Nettoie'}[a.state]||a.state;
+  return {toWait:'Va attendre',waiting:a.svc?'Attend : '+a.svc.name:'Attend',toService:'Entre en consultation',inService:a.svc?'Pris en charge : '+a.svc.name:'Pris en charge',lost:'Cherche où aller',leaving:a.mood==='happy'?'Guéri, rentre chez lui':'Rentre chez lui',toDrink:'Va boire',drinking:'Boit',toToilet:'Va aux toilettes',toilet:'Aux toilettes',dying:'Décédé'}[a.state]||a.state;
+}
+function select(x){sel=x;$('#info').hidden=!x;if(!x)return;renderInfoHead();renderInfoBody()}
+function renderInfoHead(){
+  const r=sel.ref;let h='';
+  if(sel.kind==='agent'){h=r.kind==='staff'?`<h2>${r.name}</h2><dl class="kv"><dt>Poste</dt><dd>${ROLES[r.role].name}</dd><dt>Compétence</dt><dd>${stars(r.skill)}</dd><dt>Salaire</dt><dd>${fmt(r.salary)}/mois</dd></dl><div class="acts"><button class="btn" data-act="fire">Renvoyer</button></div>`:`<h2>${r.name}</h2>`}
+  else if(sel.kind==='room'){const d=ROOMS[r.type];h=`<h2>${d.name}</h2><dl class="kv"><dt>Taille</dt><dd>${r.x1-r.x0+1}×${r.y1-r.y0+1}</dd>${d.staff?`<dt>Requiert</dt><dd>${ROLES[d.staff].name}</dd>`:''}</dl><div class="acts"><button class="btn" data-act="demolish">Démolir (+${fmt(r.cost*.5)})</button></div>`}
+  else{h=`<h2>${OBJS[r.type].name}</h2><div class="acts"><button class="btn" data-act="sell">Vendre (+${fmt(OBJS[r.type].cost*.5)})</button></div>`}
+  $('#ihead').innerHTML=h;
+}
+function meter(label,v,invert){const c=invert?(v>70?'low':''):(v<30?'low':'ok');return `<div>${label}<div class="meter"><i class="${c}" style="width:${clamp(v,0,100)}%"></i></div></div>`}
+function renderInfoBody(){
+  if(!sel)return;const r=sel.ref;let h='';
+  if(sel.kind==='agent'){
+    if(r.kind==='staff')h=`<div class="bars"><div style="color:var(--ink)">${stateLabel(r)}</div>${meter('Fatigue',r.fatigue,true)}</div>`;
+    else h=`<dl class="kv" style="margin-top:4px"><dt>Maladie</dt><dd>${r.diagnosed?r.dis.name:'Non diagnostiquée'}</dd><dt>État</dt><dd>${stateLabel(r)}</dd>${r.diagnosed?`<dt>Soin</dt><dd>${ROOMS[r.dis.room].name} · ${fmt(r.dis.fee)}</dd>`:''}</dl><div class="bars">${meter('Santé',r.health)}${meter('Patience',r.patience)}${meter('Soif',r.thirst,true)}</div>`;
+  }else if(sel.kind==='room'){
+    if(r.queue)h=`<dl class="kv" style="margin-top:8px"><dt>Personnel</dt><dd>${r.staff?r.staff.name:'<span style="color:var(--bad)">Personne</span>'}</dd><dt>File d’attente</dt><dd>${r.queue.length}</dd><dt>Patients reçus</dt><dd>${r.served}</dd></dl>`;
+  }else if(r.type==='desk'){h=`<dl class="kv" style="margin-top:8px"><dt>Réceptionniste</dt><dd>${r.staff?r.staff.name:'<span style="color:var(--bad)">Personne</span>'}</dd><dt>File d’attente</dt><dd>${r.queue.length}</dd><dt>Accueillis</dt><dd>${r.served}</dd></dl>`}
+  $('#ibody').innerHTML=h;
+}
+function updateHUD(){
+  const m=$('#money');m.textContent=fmt(G.money);m.classList.toggle('neg',G.money<0);
+  $('#date').textContent=`${(G.day%30)+1} ${MONTHS[G.month]} ${G.year}`;
+  $('#repv').textContent=Math.round(G.rep);$('#repbar').style.width=(G.rep/10)+'%';
+  document.querySelectorAll('[data-speed]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.speed===G.speed)));
+}
+function endGame(win,why){
+  G.speed=0;G.ended=!win;
+  $('#ocard').innerHTML=win?`<h1>Hôpital exemplaire</h1><p>Objectifs atteints en ${MONTHS[G.month]} ${G.year} : ${G.cured} guérisons, ${Math.round(G.rep)} de réputation, ${fmt(G.money)} en caisse.</p><div class="acts"><button class="btn" data-act="continue">Continuer à jouer</button><button class="btn" data-act="restart">Nouvelle partie</button></div>`
+    :`<h1>Hôpital fermé</h1><p>${why}</p><div class="acts"><button class="btn" data-act="restart">Recommencer</button></div>`;
+  $('#overlay').hidden=false;
+}
+function intro(){
+  $('#ocard').innerHTML=`<h1>Hôpital Saint-Pixel</h1><p>Le conseil te confie la direction. Une réception et un cabinet médical tournent déjà. Les patients arrivent avec des maladies loufoques : à toi de construire les salles pour les soigner.</p>${goalHTML()}<ul><li><b>Pièces</b> : clique puis glisse sur le sol violet.</li><li><b>Personnel</b> : chaque salle a besoin du bon employé.</li><li>Clic sur un patient, un employé ou une salle pour ses infos. Glisse pour déplacer la vue, molette pour zoomer.</li></ul><div class="acts"><button class="btn" data-act="start"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5l10 7-10 7z"/></svg>Ouvrir les portes</button></div>`;
+  $('#overlay').hidden=false;
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-menu],[data-speed],[data-act]');if(!b)return;
+  if(b.dataset.menu){toggleMenu(b.dataset.menu);return}
+  if(b.dataset.speed!==undefined){if(!G.ended)G.speed=+b.dataset.speed;updateHUD();return}
+  const a=b.dataset.act;
+  if(a==='room')setTool({kind:'room',k:b.dataset.k});
+  else if(a==='obj')setTool({kind:'obj',k:b.dataset.k});
+  else if(a==='tab'){staffTab=b.dataset.k;renderMenu()}
+  else if(a==='hire'){const c=candidates[staffTab].splice(+b.dataset.i,1)[0];hire(c);refillCandidates();say(`${c.name} rejoint l’équipe (${ROLES[c.role].name}, ${fmt(c.salary)}/mois).`);renderMenu()}
+  else if(a==='pickagent'){const ag=agents.find(x=>x.id===+b.dataset.id);if(ag){select({kind:'agent',ref:ag});centerOn(ag.x,ag.y)}}
+  else if(a==='fire'){fire(sel.ref);select(null);if(openMenu==='staff')renderMenu()}
+  else if(a==='demolish')demolish(sel.ref);
+  else if(a==='sell')sellObj(sel.ref);
+  else if(a==='close')select(null);
+  else if(a==='start'){$('#overlay').hidden=true;G.speed=1;updateHUD();say('Les portes sont ouvertes. Premiers patients en approche.')}
+  else if(a==='continue'){$('#overlay').hidden=true;G.speed=1;updateHUD()}
+  else if(a==='restart'){$('#overlay').hidden=true;newGame();select(null);closeMenu();setTool(null);G.speed=1;centerView();updateHUD();say('Nouvelle partie.')}
+});
+
+/* ----- pointeur ----- */
+let pdown=null;
+function tileAt(mx,my){const w=toWorld(mx,my);return {x:Math.floor(w.x),y:Math.floor(w.y)}}
+function updatePreview(mx,my){
+  const tip=$('#tip');
+  if(!tool){tip.hidden=true;return}
+  if(tool.kind==='room'){
+    if(!drag){tip.hidden=false;tip.className='';tip.textContent=ROOMS[tool.k].name+' : glisse pour tracer'}
+    else{preview=tryRoom(tool.k,drag.x0,drag.y0,drag.x1,drag.y1,false);const [x0,y0,x1,y1]=norm(drag.x0,drag.y0,drag.x1,drag.y1);tip.hidden=false;tip.className=preview.ok?'':'bad';tip.textContent=`${x1-x0+1}×${y1-y0+1} · ${fmt(preview.cost)}${preview.ok?'':' · '+preview.msg}`}
+  }else{preview=hover?tryObj(tool.k,hover.x,hover.y,false):null;tip.hidden=!preview;if(preview){tip.className=preview.ok?'':'bad';tip.textContent=`${OBJS[tool.k].name} · ${fmt(preview.cost)}${preview.ok?'':' · '+preview.msg}`}}
+  tip.style.left=Math.min(mx+14,VW-tip.offsetWidth-8)+'px';tip.style.top=(my+16)+'px';
+}
+cv.addEventListener('pointerdown',e=>{
+  if(e.button===2){setTool(null);return}
+  cv.setPointerCapture(e.pointerId);
+  pdown={x:e.clientX,y:e.clientY,cx:cam.x,cy:cam.y,moved:false};
+  if(tool&&tool.kind==='room'){const t=tileAt(e.clientX,e.clientY);drag={x0:t.x,y0:t.y,x1:t.x,y1:t.y};updatePreview(e.clientX,e.clientY)}
+});
+cv.addEventListener('pointermove',e=>{
+  const t=tileAt(e.clientX,e.clientY);const changed=!hover||hover.x!==t.x||hover.y!==t.y;hover=t;
+  if(pdown){const dx=e.clientX-pdown.x,dy=e.clientY-pdown.y;if(Math.hypot(dx,dy)>5)pdown.moved=true;
+    if(drag){if(drag.x1!==t.x||drag.y1!==t.y){drag.x1=t.x;drag.y1=t.y;updatePreview(e.clientX,e.clientY)}}
+    else if(pdown.moved&&!(tool&&tool.kind==='obj')){cam.x=pdown.cx+dx;cam.y=pdown.cy+dy}}
+  if(changed&&!drag)updatePreview(e.clientX,e.clientY);
+  else if(tool){const tip=$('#tip');tip.style.left=Math.min(e.clientX+14,VW-tip.offsetWidth-8)+'px';tip.style.top=(e.clientY+16)+'px'}
+});
+cv.addEventListener('pointerup',e=>{
+  if(!pdown)return;const moved=pdown.moved;pdown=null;
+  if(drag){const r=tryRoom(tool.k,drag.x0,drag.y0,drag.x1,drag.y1,true);drag=null;
+    if(r.ok){say(`<em>${r.room.name}</em> construite. ${ROOMS[r.room.type].staff?'Il lui faut un '+ROLES[ROOMS[r.room.type].staff].name.toLowerCase()+'.':''}`);setTool(null)}else say(r.msg);$('#tip').hidden=true;return}
+  if(moved)return;
+  const t=tileAt(e.clientX,e.clientY);
+  if(tool&&tool.kind==='obj'){const r=tryObj(tool.k,t.x,t.y,true);if(!r.ok)say(r.msg);updatePreview(e.clientX,e.clientY);return}
+  // sélection
+  let best=null,bk=-1;
+  for(const a of agents){if(a.state==='dying')continue;const [sx,sy]=P(a.x,a.y);const X=sx*cam.z+cam.x,Y=sy*cam.z+cam.y;if(Math.abs(e.clientX-X)<12*cam.z&&e.clientY<Y+6*cam.z&&e.clientY>Y-48*cam.z&&a.x+a.y>bk){bk=a.x+a.y;best=a}}
+  if(best){select({kind:'agent',ref:best});return}
+  const tt=T(t.x,t.y);
+  if(tt&&tt.obj&&!tt.obj.room){select({kind:'obj',ref:tt.obj});return}
+  if(tt&&tt.room){select({kind:'room',ref:roomById(tt.room)});return}
+  select(null);
+});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerleave',()=>{hover=null;if(!drag)$('#tip').hidden=true});
+cv.addEventListener('wheel',e=>{e.preventDefault();const z0=cam.z,z=clamp(z0*(e.deltaY<0?1.12:1/1.12),.5,2.2);cam.x=e.clientX-(e.clientX-cam.x)*z/z0;cam.y=e.clientY-(e.clientY-cam.y)*z/z0;cam.z=z},{passive:false});
+const keys={};
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){if(tool)setTool(null);else if(openMenu)closeMenu();else select(null)}
+  else if(e.key===' '&&e.target===document.body){e.preventDefault();if($('#overlay').hidden&&!G.ended){G.speed=G.speed?0:1;updateHUD()}}
+  keys[e.key]=true;
+});
+addEventListener('keyup',e=>{keys[e.key]=false});
+function centerOn(wx,wy){const [sx,sy]=P(wx,wy);cam.x=VW/2-sx*cam.z;cam.y=(VH-barW())/2-sy*cam.z}
+function centerView(){cam.z=VW<700?.62:1;centerOn(17,15)}
+addEventListener('resize',()=>{resize();positionPops()});
+
+/* ----- boucle ----- */
+let last=performance.now(),hudT=0;
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000);last=now;nowT=now/1000;
+  const pan=500*dt;if(keys.ArrowLeft)cam.x+=pan;if(keys.ArrowRight)cam.x-=pan;if(keys.ArrowUp)cam.y+=pan;if(keys.ArrowDown)cam.y-=pan;
+  for(let i=0;i<G.speed;i++)update(dt);
+  for(const f of floats)f.t+=dt;floats=floats.filter(f=>f.t<2.2);
+  draw();
+  hudT-=dt;if(hudT<=0){hudT=.25;updateHUD();renderInfoBody();if(openMenu==='goals')renderMenu()}
+  requestAnimationFrame(frame);
+}
+resize();newGame();centerView();updateHUD();positionPops();intro();say('Bienvenue, directeur.');
+requestAnimationFrame(frame);
+</script>
