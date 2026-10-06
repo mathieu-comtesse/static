@@ -1,4 +1,4 @@
-import { THREE, group, mat, inkify, ink, contactShadow } from './kit.js';
+import { THREE, group, mat, inkify, ink, contactShadow, tube, box } from './kit.js';
 import * as F from './furniture.js';
 import { createCharacter } from './character.js';
 import { GLTFLoader } from 'three/addons/GLTFLoader.js';
@@ -83,7 +83,11 @@ export async function createRoom(container, bubbleEl) {
   const mouse = F.verticalMouse(); mouse.position.set(0.3, 0.74, 0.24); mouse.rotation.y = 0.1; deskSet.add(mouse);
   const brontes = F.brontes();
   add('brontes', brontes, -0.8, -0.22, 0.4, 0.74, 0, deskSet);
-  inkify(deskSet, { skip: (o) => { for (let p = o; p; p = p.parent) if (p.userData && p.userData.id === 'brontes') return true; return false; } });
+  const tw = F.tower(); tw.position.set(0.8, 0.74, -0.08); tw.rotation.y = -0.12; deskSet.add(tw);
+  const dcab = (pts, r = 0.0028) => deskSet.add(tube(pts.map(([x, y, z]) => [x, y + 0.74, z]), r, mat('#121214', { roughness: 0.6 }), { segs: 40, radial: 5 }));
+  dcab([[0.77, 0.3, -0.3], [0.76, 0.012, -0.34], [0.62, 0.006, -0.36], [0.5, 0.006, -0.3], [0.5, 0.03, -0.2]]);
+  dcab([[0.79, 0.28, -0.3], [0.78, 0.012, -0.36], [0.4, 0.006, -0.4], [0.0, 0.006, -0.36], [-0.2, 0.03, -0.28]]);
+  inkify(deskSet, { skip: (o) => { if (o.geometry && o.geometry.type === 'TubeGeometry') return true; for (let p = o; p; p = p.parent) if (p.userData && p.userData.id === 'brontes') return true; return false; } });
   add('desk', deskSet, -3.1, 0.25, Math.PI / 2, 0, 0.12);
   mkLamp('brontes', brontes.userData.glow, new THREE.PointLight('#ffd9a0', 0, 3, 2), '#fff0d0', '#9a948a');
 
@@ -93,6 +97,7 @@ export async function createRoom(container, bubbleEl) {
   const STOOL_X = 2.0, STOOL_Z = 4.55;           // tabouret à droite du canapé, portant le bonsaï
   const bonsai = F.bonsai(); inkify(bonsai, { skip: (o) => !['9b9a92'].includes(o.material.color.getHexString()) }); add('bonsai', bonsai, STOOL_X, STOOL_Z, 0.5, 0.372, 0.42);
   const sp1 = F.speakerFromGltf(jblGltf, 1.15), sp2 = F.speakerFromGltf(jblGltf, 1.15);
+  const spPosts = [F.speakerPosts(sp1), F.speakerPosts(sp2)];
   const alo = F.alocasia(); inkify(alo, { skip: (o) => !(o.material.map && o.material.map.image && o.material.map.image.width === 128 && o.material.side === THREE.DoubleSide) });
   add('alocasia', alo, -3.1, 3.25, 0.6, 0, 0.9).scale.setScalar(0.9);
   add('sofa', F.sofaFrom(sofaGltf, 2.2, { recline: 0, slide: 0, lateral: 0 }), 0.35, 4.55, Math.PI, 0, 0.95);
@@ -115,7 +120,15 @@ export async function createRoom(container, bubbleEl) {
   world.add(lamps.andon.light);
   // télé cathodique + PS1 + manette sur le tapis, câbles au sol
   const retro = createRetroSet();
-  add('tv', retro.group, -0.5, 0.4, 0, 0.018, 0.55, world, 0).scale.setScalar(1.3);
+  add('tv', retro.group, -0.35, 2.0, 0, 0.018, 0.55, world, 0).scale.setScalar(1.3);
+  world.updateMatrixWorld(true);
+  // cordon de la multiprise : serpente sur le tapis, sort par le bord droit, passe du côté gauche (vu de l'écran) de l'étagère blanche et rejoint la prise au sol
+  const cs0 = retro.group.localToWorld(retro.cordStart.clone());
+  const cordPts = [[cs0.x, 0.03, cs0.z], [cs0.x + 0.22, 0.03, cs0.z - 0.16], [cs0.x + 0.5, 0.03, cs0.z + 0.04], [cs0.x + 0.78, 0.03, cs0.z + 0.35], [1.25, 0.03, 2.4], [1.52, 0.026, 2.75], [1.75, 0.01, 3.0], [2.05, 0.008, 3.12], [2.4, 0.008, 2.98], [2.75, 0.008, 3.12], [3.1, 0.008, 2.98], [3.45, 0.008, 3.1], [3.7, 0.008, 3.08]];
+  const cord = tube(cordPts, 0.0105, new THREE.MeshStandardMaterial({ color: '#17181a', roughness: 0.6 }), { segs: 160, radial: 6 });
+  const wallPlug = group(box(0.05, 0.03, 0.04, mat('#17181a'), 3.69, 0.012, 3.08));
+  const outlet = group(box(0.14, 0.012, 0.14, mat('#ecebe6', { roughness: 0.5 }), 3.82, 0.006, 3.08), box(0.02, 0.014, 0.012, mat('#222'), 3.82, 0.007, 3.05), box(0.02, 0.014, 0.012, mat('#222'), 3.82, 0.007, 3.11));
+  add('strip', group(cord, wallPlug, outlet), 0, 0, 0, 0, 0.6, world, 0);
   const usmSet = group();
   usmSet.add(F.usm());
   const amp = F.amplifier(); amp.position.set(-0.37, 0.734, 0); usmSet.add(amp);
@@ -138,6 +151,22 @@ export async function createRoom(container, bubbleEl) {
   ek.parent.updateMatrixWorld(true);
   add('shelf1', F.shelf(), ekBox.max.x - 0.04, 1.8, Math.PI / 2, 0, 0.8);
 
+  // câbles d'enceintes : de l'arrière de l'ampli (derrière le meuble vert) jusqu'aux bornes de chaque enceinte
+  { world.updateMatrixWorld(true);
+    const ampPost = F.ampPosts(amp); usmSet.updateMatrixWorld(true);
+    const run = (aKey, spId, spk, sp) => {
+      const holder = items.find((i) => i.id === spId).holder;
+      ['black', 'red'].forEach((c, ci) => {
+        const A = amp.localToWorld(ampPost[aKey + c].clone());
+        const S = holder.localToWorld(sp[c].clone());
+        const o = ci * 0.014, zz = -2.7 - o;
+        const mid = (A.x + S.x) / 2;
+        const pts = [[A.x, A.y, A.z], [A.x, A.y - 0.02, A.z - 0.08], [A.x, 0.45, zz], [A.x + (S.x - A.x) * 0.15, 0.01, zz - 0.03], [mid, 0.006, zz + 0.16 + o], [S.x + (A.x - S.x) * 0.1, 0.007, zz - 0.02], [S.x, S.y * 0.3, S.z - 0.05], [S.x, S.y, S.z]];
+        const t = tube(pts, 0.0045, new THREE.MeshStandardMaterial({ color: c === 'red' ? '#b32525' : '#18181a', roughness: 0.5 }), { segs: 90, radial: 5 });
+        add('wire' + spId + c, t, 0, 0, 0, 0, 0.8, world, 0);
+      });
+    };
+    run('L', 'speaker1', null, spPosts[0]); run('R', 'speaker2', null, spPosts[1]); }
   // positions des sources lumineuses (repère monde)
   const yawed = (v, yaw, ox, oz) => { v = v.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw); return [ox + v.x, v.y, oz + v.z]; };
   lamps.arc.light.position.set(...yawed(new THREE.Vector3(1.38, 2.05, 0), ARC_YAW, 0.85, -2.15));
@@ -318,6 +347,7 @@ export async function createRoom(container, bubbleEl) {
       else if (retro.state === 'ready') openApp('retro', retro.group.localToWorld(retro.tvCenter.clone()), 5.2);
       return;
     }
+    if (id === 'strip') { retro.setStrip(!retro.stripOn); return; }
     if (id === 'pc') { leave(); openApp('xp', uw.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.22, 0)), 5.2); return; }
     if (/^shoji\d$/.test(id)) { cs.togglePanel(+id.slice(5)); return; }
     if (lamps[id]) { lamps[id].on = !lamps[id].on; lamps[id].manual = true; return; }

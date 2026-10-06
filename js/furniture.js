@@ -902,3 +902,43 @@ export function shelf() {
   g.userData.top = H;
   return bake(g);
 }
+
+/* ───────────── UNITÉ CENTRALE (moyenne tour noire, face avant = +z) ───────────── */
+export function tower() {
+  const g = group();
+  const W = 0.2, H = 0.44, D = 0.42;
+  const body = mat('#1c1d20', { roughness: 0.5, metalness: 0.2 }), panel = mat('#25272b', { roughness: 0.45, metalness: 0.2 });
+  const dark = mat('#0b0c0e', { roughness: 0.7 });
+  g.add(rbox(W, H, D, 0.008, body, 0, 0.012 + H / 2, 0));
+  g.add(rbox(W + 0.004, H - 0.03, 0.014, 0.005, panel, 0, 0.012 + H / 2, D / 2 + 0.002));                    // façade
+  for (let i = 0; i < 9; i++) g.add(box(W * 0.78, 0.006, 0.004, dark, 0, 0.1 + i * 0.03, D / 2 + 0.011));      // grille d'aération
+  g.add(box(W * 0.7, 0.026, 0.004, dark, 0, 0.012 + H - 0.05, D / 2 + 0.011));                                // baie optique
+  g.add(box(W * 0.5, 0.004, 0.004, mat('#4a4d52'), 0, 0.012 + H - 0.05, D / 2 + 0.0135));
+  const btn = cyl(0.011, 0.011, 0.008, mat('#cfd2d6', { metalness: 0.8, roughness: 0.3 }), -0.04, 0.012 + H - 0.1, D / 2 + 0.012, 20); btn.rotation.x = Math.PI / 2; g.add(btn);
+  g.add(box(0.012, 0.004, 0.004, mat('#3b8cff', { emissive: '#3b8cff', emissiveIntensity: 1.6 }), 0.03, 0.012 + H - 0.1, D / 2 + 0.011));   // voyant
+  for (const x of [0.012, 0.04]) g.add(box(0.016, 0.006, 0.006, dark, x, 0.012 + H - 0.125, D / 2 + 0.011));        // USB
+  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) g.add(cyl(0.012, 0.014, 0.012, dark, x * (W / 2 - 0.02), 0.006, z * (D / 2 - 0.03), 10));
+  return bake(g);
+}
+
+/** Bornes d'enceinte (rouge/noire) posées sur la face arrière d'une enceinte ; renvoie les points locaux de raccord. */
+export function speakerPosts(sp) {
+  const bb = new THREE.Box3().setFromObject(sp), zb = bb.min.z - 0.004, y = bb.min.y + (bb.max.y - bb.min.y) * 0.3;
+  const plate = box(0.1, 0.05, 0.008, mat('#111214', { roughness: 0.5 }), 0, y, zb + 0.002);
+  sp.add(plate);
+  [[-0.025, '#101010'], [0.025, '#c42424']].forEach(([x, c]) => { const p = cyl(0.009, 0.009, 0.014, mat(c, { roughness: 0.35, metalness: 0.3 }), x, y, zb - 0.004, 12); p.rotation.x = Math.PI / 2; sp.add(p); });
+  return { black: new THREE.Vector3(-0.025, y, zb - 0.012), red: new THREE.Vector3(0.025, y, zb - 0.012) };
+}
+
+/** Bornes d'enceinte à l'arrière de l'ampli (deux paires, gauche et droite). */
+export function ampPosts(amp) {
+  const out = {};
+  [['L', -0.2], ['R', 0.2]].forEach(([k, x0]) => {
+    [['black', 0, '#101010'], ['red', 0.028, '#c42424']].forEach(([n, dx, c]) => {
+      const x = x0 + dx, y = 0.015 + 0.035, z = -0.15 - 0.008;
+      const p = cyl(0.007, 0.007, 0.014, mat(c, { roughness: 0.35, metalness: 0.3 }), x, y, z, 12); p.rotation.x = Math.PI / 2; amp.add(p);
+      out[k + n] = new THREE.Vector3(x, y, z - 0.01);
+    });
+  });
+  return out;
+}

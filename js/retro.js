@@ -78,10 +78,22 @@ export function createRetroSet() {
   [['#e6c61e', 0], ['#f2f2ee', 0.012], ['#cc2b2b', 0.024]].forEach(([c, o]) => {
     cable([[0.60 + o, 0.03, -0.12], [0.62 + o, FLOOR, -0.2], [0.55 + o, FLOOR, -0.42], [0.3 + o * 0.6, FLOOR, -0.5], [0.1 + o * 0.6, FLOOR + 0.02, -0.46], [0.02 + o * 0.5, 0.1, -0.4], [0.0 + o * 0.5, 0.2, -0.33]], c, 0.0034);
   });
-  // alimentation télé (noir) : sort par l'arrière et file hors du tapis
-  cable([[-0.1, 0.18, -0.35], [-0.13, 0.04, -0.45], [-0.3, FLOOR, -0.55], [-0.7, FLOOR, -0.5], [-1.0, FLOOR, -0.25], [-1.3, FLOOR, -0.28]], '#141416', 0.0055);
-  // alimentation console (noir)
-  cable([[0.7, 0.03, -0.12], [0.78, FLOOR, -0.22], [1.0, FLOOR, -0.22], [1.25, FLOOR, -0.05], [1.5, FLOOR, -0.1]], '#141416', 0.005);
+  // multiprise derrière le set : les deux alimentations y sont branchées, son cordon part vers la droite (raccordé au sol par room.js)
+  const SX = 0.3, SZ = -0.8, SL = 0.34;
+  const strip = group(); strip.userData.id = 'strip';
+  strip.add(rbox(SL, 0.032, 0.062, 0.008, mat('#e9e7e1', { roughness: 0.45 }), SX, 0.016 + FLOOR, SZ));
+  const rocker = rbox(0.03, 0.012, 0.04, 0.004, new THREE.MeshStandardMaterial({ color: '#ff5a2a', emissive: '#ff4a1a', emissiveIntensity: 1.6, roughness: 0.4 }), SX - SL / 2 + 0.03, 0.036 + FLOOR, SZ);
+  strip.add(rocker);
+  for (const x of [-0.07, -0.01, 0.05, 0.11]) { strip.add(box(0.03, 0.004, 0.022, mat('#2a2b2e'), SX + x, 0.033 + FLOOR, SZ)); strip.add(box(0.004, 0.0045, 0.004, mat('#0a0a0b'), SX + x - 0.007, 0.034 + FLOOR, SZ)); strip.add(box(0.004, 0.0045, 0.004, mat('#0a0a0b'), SX + x + 0.007, 0.034 + FLOOR, SZ)); }
+  g.add(strip);
+  const sockY = 0.036 + FLOOR;
+  const pw = (pts, r = 0.0055) => { mk(pts, '#141416', r * 1.0); const e = pts[pts.length - 1]; plug(e[0], e[1], e[2], '#1a1a1c'); };
+  // alimentation télé : sort par l'arrière de la caisse et rejoint la multiprise
+  pw([[-0.1, 0.18, -0.35], [-0.13, 0.04, -0.46], [-0.12, FLOOR, -0.62], [-0.02, FLOOR, -0.7], [SX - 0.07, sockY + 0.02, SZ + 0.01], [SX - 0.07, sockY + 0.005, SZ]]);
+  // alimentation console
+  pw([[0.7, 0.03, -0.12], [0.84, FLOOR, -0.26], [0.78, FLOOR, -0.58], [SX + 0.1, FLOOR + 0.01, SZ + 0.1], [SX + 0.05, sockY + 0.02, SZ + 0.02], [SX + 0.05, sockY + 0.005, SZ]]);
+  // cordon de la multiprise : part du bout droit
+  const cordStart = new THREE.Vector3(SX + SL / 2, 0.02 + FLOOR, SZ);
   // câble manette : de la prise de façade jusqu'à la manette, avec du mou
   cable([[0.475, 0.03, 0.12], [0.46, FLOOR, 0.25], [0.52, FLOOR, 0.45], [0.38, FLOOR, 0.6], [0.28, FLOOR, 0.62], [0.2, FLOOR, 0.72], [0.27, 0.014, 0.74], [0.3, 0.02, 0.76]], '#8c8c88', 0.0045);
   plug(0.475, 0.03, 0.125, '#8c8c88');
@@ -91,7 +103,7 @@ export function createRetroSet() {
   /* ── écran : état et animation d'allumage ── */
   const cv = tex.image, c = cv.getContext('2d');
   const rd = rng(99);
-  const st = { state: 'off', t: 0, last: -1 };
+  const st = { state: 'off', t: 0, last: -1, strip: true };
   const scan = () => { c.fillStyle = 'rgba(0,0,0,0.22)'; for (let y = 0; y < 240; y += 3) c.fillRect(0, y, 320, 1); };
   const vignette = () => { const gr = c.createRadialGradient(160, 120, 60, 160, 120, 210); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.5)'); c.fillStyle = gr; c.fillRect(0, 0, 320, 240); };
   function noise(a = 1) { const id = c.createImageData(320, 240), d = id.data; for (let i = 0; i < d.length; i += 4) { const v = (rd() * 255 * a) | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } c.putImageData(id, 0, 0); }
@@ -126,10 +138,13 @@ export function createRetroSet() {
     }
     tex.needsUpdate = true;
   }
+  const litMat = rocker.material;
   const api = {
+    strip, cordStart, get stripOn() { return st.strip; },
+    setStrip(v) { st.strip = v; litMat.emissiveIntensity = v ? 1.6 : 0; litMat.color.set(v ? '#ff5a2a' : '#6b2a18'); if (!v) this.powerOff(); },
     group: g, tvCenter: new THREE.Vector3(-0.04, Y0 + H * 0.52, frontZ + 0.02),
     get state() { return st.state; },
-    powerOn() { if (st.state === 'off') { st.state = 'warm'; st.t = 0; st.last = -1; } },
+    powerOn() { if (st.strip && st.state === 'off') { st.state = 'warm'; st.t = 0; st.last = -1; } },
     powerOff() { if (st.state !== 'off') { st.state = 'closing'; st.t = 0; st.last = -1; } },
     update(dt) { frame(dt); },
   };
