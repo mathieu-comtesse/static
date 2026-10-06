@@ -204,9 +204,9 @@ export function updateSteam(g, t, rise = 0.28, size = 0.12, strength = 1) {
 }
 
 /* ── installation complète, dans le repère invité ── */
-export function teaSet() {
+export function teaSet({ mat: withMat = true } = {}) {
   const g = group();
-  g.add(tatami());
+  if (withMat) g.add(tatami());
   const zg = zabuton(); zg.position.set(0, 0.055, 0); g.add(zg);
   const zh = zabuton(); zh.position.set(0, 0.055, 1.42); zh.rotation.y = Math.PI; g.add(zh);
   const bowl = chawan(); bowl.position.set(0, 0.055, 0.42); g.add(bowl);
