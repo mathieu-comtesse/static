@@ -94,7 +94,7 @@ export async function createRoom(container, bubbleEl) {
   const sp1 = F.speaker(false, false), sp2 = F.speaker(true, false); inkify(sp1, { skip: (o) => o.material.map }); inkify(sp2, { skip: (o) => o.material.map });
   const alo = F.alocasia(); inkify(alo, { skip: (o) => !(o.material.map && o.material.map.image && o.material.map.image.width === 128 && o.material.side === THREE.DoubleSide) });
   add('alocasia', alo, -2.05, -1.4, 0.6, 0, 0.9).scale.setScalar(0.85);
-  add('sofa', F.sofaFrom(sofaGltf), 0.55, 4.85, Math.PI, 0, 0.95);
+  add('sofa', F.sofaFrom(sofaGltf, 2.2, { recline: 0, slide: 0, lateral: 0 }), 0.35, 4.55, Math.PI, 0, 0.95);
   add('speaker1', sp1, -1.85, -2.4, 0.2, 0, 0.5).scale.setScalar(SPK);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
