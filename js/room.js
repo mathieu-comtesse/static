@@ -6,6 +6,7 @@ import { loadBuffer } from './kit.js';
 import { teaSet, shoePair, updateSteam } from './tea.js';
 import { createRitual } from './ritual.js';
 import { createChashitsu } from './chashitsu.js';
+import { createRetroSet } from './retro.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 
 const DEG = Math.PI / 180;
@@ -76,8 +77,8 @@ export async function createRoom(container, bubbleEl) {
   // bureau + objets
   const deskSet = group();
   deskSet.add(F.desk());
-  const uw = F.ultrawide(); uw.position.set(-0.2, 0.74, -0.2); deskSet.add(uw);
-  const pm = F.portraitMonitor(); pm.position.set(0.52, 0.74, -0.18); pm.rotation.y = -0.22; deskSet.add(pm);
+  const uw = F.ultrawide(); uw.position.set(-0.2, 0.74, -0.2); uw.userData.id = 'pc'; deskSet.add(uw);
+  const pm = F.portraitMonitor(); pm.position.set(0.52, 0.74, -0.18); pm.rotation.y = -0.22; pm.userData.id = 'pc'; deskSet.add(pm);
   const kb = F.moonlander(); kb.position.set(-0.12, 0.74, 0.2); deskSet.add(kb);
   const mouse = F.verticalMouse(); mouse.position.set(0.3, 0.74, 0.24); mouse.rotation.y = 0.1; deskSet.add(mouse);
   const brontes = F.brontes();
@@ -112,6 +113,9 @@ export async function createRoom(container, bubbleEl) {
   mkLamp('andon', cs.lanternGlow, new THREE.PointLight('#ffd9a0', 0, 2.5, 2), '#ffe2a0', '#cfc8b4');
   lamps.andon.light.position.set(CS.x + cs.spec.RW / 2 - 0.15, 0.4, CS.z + cs.spec.DK.z0 + 1.05);
   world.add(lamps.andon.light);
+  // télé cathodique + PS1 + manette sur le tapis, câbles au sol
+  const retro = createRetroSet();
+  add('tv', retro.group, -0.5, 0.4, 0, 0.018, 0.55, world, 0).scale.setScalar(1.3);
   const usmSet = group();
   usmSet.add(F.usm());
   const amp = F.amplifier(); amp.position.set(-0.37, 0.734, 0); usmSet.add(amp);
@@ -150,7 +154,7 @@ export async function createRoom(container, bubbleEl) {
   /* ─── caméra orthographique ─── */
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
   const view = { az: 36 * DEG, el: 26 * DEG, zoom: 1, tAz: 36 * DEG, tEl: 26 * DEG, tZoom: 1 };
-  const target = new THREE.Vector3(0.1, 0.8, -0.2);
+  const target = new THREE.Vector3(0.1, 0.8, -0.2), tgt = target.clone(), home = target.clone();
   const DEF = { az: 36 * DEG, el: 26 * DEG, zoom: 1 };
   let fit = 1, W = 1, H = 1;
 
@@ -168,7 +172,7 @@ export async function createRoom(container, bubbleEl) {
     view.az = DEF.az; view.el = DEF.el; orient();
     items.forEach((i) => { i.obj.position.copy(i.base); });
     world.updateMatrixWorld(true);
-    const inv0 = new THREE.Box3().setFromObject(world); inv0.getCenter(target);
+    const inv0 = new THREE.Box3().setFromObject(world); inv0.getCenter(target); tgt.copy(target); home.copy(target);
     orient();
     const inv = camera.matrixWorldInverse, v = new THREE.Vector3(), bb = new THREE.Box3();
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
@@ -298,7 +302,23 @@ export async function createRoom(container, bubbleEl) {
     });
   }
 
+  let appOpen = false;
+  function openApp(kind, pos, zoom) {
+    if (appOpen) return; appOpen = true; leave();
+    tgt.copy(pos); view.tZoom = zoom;
+    setTimeout(() => window.dispatchEvent(new CustomEvent('room-open', { detail: { kind } })), 750);
+  }
+  window.addEventListener('room-close', (e) => {
+    appOpen = false; tgt.copy(home); view.tZoom = 1;
+    if (e.detail && e.detail.kind === 'retro') retro.powerOff();
+  });
   function activate(id) {
+    if (id === 'tv') {
+      if (retro.state === 'off') retro.powerOn();
+      else if (retro.state === 'ready') openApp('retro', retro.group.localToWorld(retro.tvCenter.clone()), 5.2);
+      return;
+    }
+    if (id === 'pc') { leave(); openApp('xp', uw.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.22, 0)), 5.2); return; }
     if (/^shoji\d$/.test(id)) { cs.togglePanel(+id.slice(5)); return; }
     if (lamps[id]) { lamps[id].on = !lamps[id].on; lamps[id].manual = true; return; }
     if (id === 'speaker1' || id === 'speaker2') { music = !music; return; }
@@ -369,11 +389,12 @@ export async function createRoom(container, bubbleEl) {
     }
     // vue
     const kv = 1 - Math.exp(-dt * 10);
+    target.lerp(tgt, kv);
     view.az += (view.tAz - view.az) * kv; view.el += (view.tEl - view.el) * kv; view.zoom += (view.tZoom - view.zoom) * kv;
     orient(); applyFrustum();
     // personnage
     if (ritual.state.active) ritual.update(dt);
-    cs.update(dt, t, night);
+    cs.update(dt, t, night); retro.update(dt);
     // vapeur du bol et de la kama
     { const ud = tea.userData; ud.sBowl.position.copy(ritual.object.position).y += 0.075; ud.sKama.position.copy(ud.fk.position).add(ud.fk.userData.steamAnchor);
       const drunk = ud.bowl.userData.tea.visible ? 1 : 0; updateSteam(ud.sBowl, t, 0.3, 0.1, drunk); updateSteam(ud.sKama, t + 1.3, 0.34, 0.13, 0.8); }
@@ -423,5 +444,5 @@ export async function createRoom(container, bubbleEl) {
   io.observe(container);
   document.addEventListener('visibilitychange', () => { if (document.hidden) running = false; else if (!running) { running = true; clock.getDelta(); requestAnimationFrame(frame); } });
 
-  return { activate, leave, lamps, view, target, opts, hero, ritual, tea, cs, scene, camera, renderer };
+  return { activate, leave, lamps, view, target: tgt, opts, hero, ritual, tea, cs, scene, camera, renderer };
 }

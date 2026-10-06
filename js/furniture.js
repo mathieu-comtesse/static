@@ -22,18 +22,22 @@ export function desk() {
 
 function screenTexture(kind, w, h) {
   return canvasTexture(w, h, (c) => {
-    c.fillStyle = '#f4f1ea'; c.fillRect(0, 0, w, h);
-    const accent = '#e8452b';
     if (kind === 'wide') {
-      c.fillStyle = '#e7e2d6'; c.fillRect(0, 0, w * 0.12, h);
-      for (let i = 0; i < 9; i++) { c.fillStyle = i === 2 ? accent : '#bdb7a8'; c.fillRect(w * 0.02, h * (0.08 + i * 0.09), w * 0.08, h * 0.035); }
-      c.fillStyle = '#ffffff'; c.fillRect(w * 0.15, h * 0.08, w * 0.4, h * 0.84);
-      c.fillStyle = '#d8d2c3'; for (let i = 0; i < 12; i++) c.fillRect(w * 0.18, h * (0.14 + i * 0.065), w * (i % 4 === 3 ? 0.18 : 0.33), h * 0.022);
-      c.fillStyle = accent; c.fillRect(w * 0.18, h * 0.1, w * 0.12, h * 0.03);
-      c.fillStyle = '#243044'; c.fillRect(w * 0.58, h * 0.08, w * 0.4, h * 0.84);
-      const cols = ['#e8452b', '#f3b43f', '#5aa97a', '#6ea0e0'];
-      for (let i = 0; i < 9; i++) { c.fillStyle = cols[i % 4]; c.fillRect(w * (0.6 + (i * 0.07) % 0.22), h * (0.14 + i * 0.085), w * (0.1 + (i % 3) * 0.05), h * 0.04); }
+      // fond d'écran Windows XP (Bliss), dossier « Projets pro », barre des tâches et bouton démarrer
+      const sky = c.createLinearGradient(0, 0, 0, h); sky.addColorStop(0, '#1d5fd0'); sky.addColorStop(0.6, '#6aa9ef'); sky.addColorStop(1, '#c5e3ff'); c.fillStyle = sky; c.fillRect(0, 0, w, h);
+      c.fillStyle = 'rgba(255,255,255,0.9)'; for (const [x, y, rx, ry] of [[0.2, 0.22, 0.12, 0.07], [0.32, 0.18, 0.09, 0.06], [0.74, 0.16, 0.14, 0.06], [0.88, 0.24, 0.09, 0.05]]) { c.beginPath(); c.ellipse(x * w, y * h, rx * w, ry * h, 0, 0, 6.3); c.fill(); }
+      const hill = c.createLinearGradient(0, h * 0.5, 0, h); hill.addColorStop(0, '#7ec43a'); hill.addColorStop(0.5, '#4f9a1c'); hill.addColorStop(1, '#2e6f10'); c.fillStyle = hill;
+      c.beginPath(); c.moveTo(0, h * 0.72); c.bezierCurveTo(w * 0.2, h * 0.55, w * 0.45, h * 0.5, w * 0.65, h * 0.62); c.bezierCurveTo(w * 0.8, h * 0.7, w * 0.9, h * 0.62, w, h * 0.56); c.lineTo(w, h); c.lineTo(0, h); c.closePath(); c.fill();
+      // icône dossier
+      c.fillStyle = '#e8b73a'; c.fillRect(w * 0.03, h * 0.08, w * 0.05, h * 0.09); c.fillStyle = '#f6d36a'; c.fillRect(w * 0.03, h * 0.105, w * 0.05, h * 0.065);
+      c.fillStyle = '#fff'; c.font = `${Math.round(h * 0.045)}px sans-serif`; c.textAlign = 'center'; c.fillText('Projets pro', w * 0.055, h * 0.215);
+      // barre des tâches
+      const tb = c.createLinearGradient(0, h * 0.93, 0, h); tb.addColorStop(0, '#3f8cf3'); tb.addColorStop(0.2, '#245edb'); tb.addColorStop(1, '#1941a5'); c.fillStyle = tb; c.fillRect(0, h * 0.93, w, h * 0.07);
+      c.fillStyle = '#3c9a2c'; c.fillRect(0, h * 0.93, w * 0.1, h * 0.07); c.fillStyle = '#fff'; c.font = `italic bold ${Math.round(h * 0.045)}px sans-serif`; c.textAlign = 'left'; c.fillText('démarrer', w * 0.022, h * 0.985);
+      c.fillStyle = '#0b81d6'; c.fillRect(w * 0.93, h * 0.93, w * 0.07, h * 0.07);
     } else {
+      c.fillStyle = '#f4f1ea'; c.fillRect(0, 0, w, h);
+      const accent = '#e8452b';
       c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h * 0.09);
       c.fillStyle = accent; c.fillRect(w * 0.06, h * 0.03, w * 0.3, h * 0.03);
       for (let i = 0; i < 8; i++) {

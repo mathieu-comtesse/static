@@ -1,4 +1,6 @@
 import { createRoom } from './room.js';
+import { initUI } from './ui.js';
+initUI();
 
 const host = document.getElementById('room');
 const bubble = document.getElementById('bubble');
