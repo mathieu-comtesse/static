@@ -445,14 +445,12 @@ export function arcLamp() {
 
 /* ───────────── TABLEAU ───────────── */
 export function painting(tex) {
-  /* Tableau accroché dans le vide contre un pan de mur fictif : dalle de plâtre crème flottante, cadre bois, passe-partout. */
+  /* Tableau simplement suspendu : le volume s'arrête au bord extérieur du cadre. */
   const g = group();
-  const wall = new THREE.MeshStandardMaterial({ color: '#f1ead9', roughness: 0.95, emissive: '#efe8d8', emissiveIntensity: 0.4 });
-  g.add(rbox(1.5, 1.25, 0.06, 0.01, wall, 0, 1.3, -0.04));
   const side = mat('#3b2616', { roughness: 0.7 });
   const front = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
   const m = mesh(new THREE.BoxGeometry(0.56, 0.642, 0.03), [side, side, side, side, front, side]);
-  m.position.set(0, 1.3, 0.005);
+  m.position.set(0, 0, 0);
   g.add(m);
   return g;
 }
@@ -553,7 +551,7 @@ export function concreteLamp() {
 /* ───────────── ENCEINTE JBL L52 Classic sur pied ─────────────
  * Ébénisterie noyer (0,32 × 0,20 × 0,21 m), baffle noir granuleux, tweeter à dôme en haut, évent rond à côté, boomer de 5,25″ à cône crème
  * et bobine noire, quatre vis rondes aux angles, plaque JBL orange avec bouton de réglage. `flip` inverse la disposition (paire gauche/droite). */
-export function speaker(flip = false) {
+export function speaker(flip = false, onStand = true) {
   const g = group();
   const grain = canvasTexture(256, 256, (c, w, h) => {
     c.fillStyle = '#6b4128'; c.fillRect(0, 0, w, h);
@@ -570,8 +568,8 @@ export function speaker(flip = false) {
   stand.add(rbox(0.27, 0.014, 0.27, 0.006, steel, 0, 0.007, 0));
   for (const x of [-0.07, 0.07]) stand.add(cyl(0.011, 0.011, 0.56, steel, x, 0.3, 0, 10));
   stand.add(rbox(0.24, 0.012, 0.24, 0.005, steel, 0, 0.586, 0));
-  g.add(stand);
-  const cab = group(); cab.position.y = 0.592;
+  if (onStand) g.add(stand);
+  const cab = group(); cab.position.y = onStand ? 0.592 : 0.0;
   cab.add(rbox(W, H, D, 0.008, walnut, 0, H / 2, 0));
   cab.add(rbox(W - 0.006, H - 0.006, 0.012, 0.004, baffle, 0, H / 2, D / 2 + 0.002));
   const f = D / 2 + 0.01, sx = flip ? -1 : 1;

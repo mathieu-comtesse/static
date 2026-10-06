@@ -89,8 +89,9 @@ export async function createRoom(container, bubbleEl) {
 
   const bench = F.bench(); add('bench', bench, -3.1, 2.15, 0, 0, 0.3);
   const bonsai = F.bonsai(); inkify(bonsai, { skip: (o) => !['9b9a92'].includes(o.material.color.getHexString()) }); add('bonsai', bonsai, -3.1, 2.15, 0.5, 0.28, 0.42);
-  const sp1 = F.speaker(false), sp2 = F.speaker(true); inkify(sp1, { skip: (o) => o.material.map }); inkify(sp2, { skip: (o) => o.material.map });
-  add('speaker1', sp1, -4.1, -2.0, 0.75, 0, 0.5);
+  const SPK = 1.7;                           // enceintes posées au sol, de part et d'autre du USM
+  const sp1 = F.speaker(false, false), sp2 = F.speaker(true, false); inkify(sp1, { skip: (o) => o.material.map }); inkify(sp2, { skip: (o) => o.material.map });
+  add('speaker1', sp1, -1.85, -2.4, 0.2, 0, 0.5).scale.setScalar(SPK);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
   const ek = F.ekstrem(); add('ekstrem', ek, 2.3, -0.95, -0.45, 0, 0.35).scale.setScalar(EKS);
@@ -113,9 +114,9 @@ export async function createRoom(container, bubbleEl) {
   add('arc', arc, 0.85, -2.15, ARC_YAW, 0, 0.6, world, 0);
   mkLamp('arc', arc.userData.glow, new THREE.PointLight('#ffe0a8', 0, 6, 2), '#ffe6b0', '#8a8272');
 
-  if (paintTex) add('painting', F.painting(paintTex), 0.7, -3.5, 0.3, 0, 0.7, world, 0);
+  if (paintTex) { const pt = add('painting', F.painting(paintTex), -0.7, -2.95, 0, 1.35, 0.7, world, 0); pt.scale.setScalar(1.3); }
   const dra = F.dracaena(); inkify(dra, { skip: (o) => o.material.color.getHexString() !== 'b3a893' }); add('dracaena', dra, 2.85, -2.45, 0.3, 0, 0.65);
-  add('speaker2', sp2, 3.6, 0.7, -0.75, 0, 0.75);
+  add('speaker2', sp2, 0.4, -2.4, -0.2, 0, 0.75).scale.setScalar(SPK);
   add('shelf1', F.shelf(), 4.6, -1.3, Math.PI / 2, 0, 0.8);
 
   // positions des sources lumineuses (repère monde)
