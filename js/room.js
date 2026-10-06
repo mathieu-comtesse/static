@@ -519,6 +519,12 @@ export async function createRoom(container, bubbleEl) {
   }
   const card = document.createElement('div'); card.className = 'sleeve-card'; container.appendChild(card);
   let cardFor = -2;
+  // pastille cliquable sur le tiroir : reste au-dessus du personnage, qui peut le masquer quand il écoute un vinyle
+  const hot = document.createElement('button'); hot.className = 'hot'; hot.type = 'button'; hot.setAttribute('aria-label', 'Ouvrir le tiroir à disques');
+  hot.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#1c1a17"/><circle cx="12" cy="12" r="3.2" fill="#e8452b"/><circle cx="12" cy="12" r="0.9" fill="#fff"/><path d="M5.5 9a7 7 0 0 1 4-3.4" stroke="#fff" stroke-opacity=".5" stroke-width="1" fill="none" stroke-linecap="round"/></svg>';
+  hot.addEventListener('click', (e) => { e.stopPropagation(); openCrate(!crate.isOpen); });
+  hot.addEventListener('pointerdown', (e) => e.stopPropagation());
+  container.appendChild(hot);
   window.addEventListener('keydown', (e) => {
     if (!crate.isOpen || appOpen) return;
     const cur = crate.sel >= 0 ? crate.sel : jukebox.playing >= 0 ? jukebox.playing : 0;
@@ -643,6 +649,7 @@ export async function createRoom(container, bubbleEl) {
     }
     // tiroir à pochettes
     crate.update(dt, view.az);
+    { const q = new THREE.Vector3(-1.075, 0.74, -2.2).project(camera); hot.style.transform = `translate(${((q.x + 1) / 2) * W}px, ${((1 - q.y) / 2) * H}px) translate(-50%, -50%)`; hot.classList.toggle('show', !crate.isOpen && !appOpen && since > 2); }
     if (crate.isOpen && crate.sel >= 0 && !appOpen) {
       if (cardFor !== crate.sel) {
         cardFor = crate.sel; const t = TRACKS[cardFor], c = 52, col = cardFor % COVER.cols, row = (cardFor / COVER.cols) | 0;
