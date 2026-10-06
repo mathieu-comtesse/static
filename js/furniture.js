@@ -373,42 +373,22 @@ export function rug(tex, w = 1.6, l = 2.25) {
   return out;
 }
 
-/* ───────────── FAUTEUIL EKSTREM ───────────── */
-export function ekstrem() {
-  /* Ekstrem (Terje Ekstrøm), mesuré sur les photos de face, de profil et de trois quarts (H 0,84 · L 0,80 · P 0,76 m) :
-   *  - par côté, un poteau arrière rond qui monte jusqu'au « M », se recourbe vers le centre et rejoint le dossier,
-   *  - une poutre matelassée par côté (jointes par une couture au centre) : dossier incliné, assise arrière haute, marche arrondie,
-   *    assise avant basse avec sa cuvette ; section rectangulaire à angles très arrondis, balayée le long du profil en S,
-   *  - l'avant : jambe ronde et barre en arche qui revient vers le centre,
-   *  - pieds avec embouts gris. */
+/* ───────────── FAUTEUIL EKSTREM (Terje Ekstrøm, Varier) ─────────────
+ * Modèle 3D Warehouse « Ekstrem Chair » de Marià V. (gltf, 4,5 k triangles, 0,75 × 0,79 × 0,71 m), recoloré en noir : la maille jaune d'origine
+ * sert de relief de tissu. L'avant du fauteuil est +z. */
+export function ekstremFrom(gltf) {
   const g = group();
-  const weave = canvasTexture(64, 64, (c, w, h) => { c.fillStyle = '#808080'; c.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) { c.fillStyle = (x / 4 + y / 4) % 2 ? '#b5b5b5' : '#5a5a5a'; c.fillRect(x, y, 3, 3); } });
-  weave.wrapS = weave.wrapT = THREE.RepeatWrapping; weave.repeat.set(10, 10); weave.colorSpace = THREE.NoColorSpace;
-  const fabric = new THREE.MeshStandardMaterial({ color: '#25272d', roughness: 1, bumpMap: weave, bumpScale: 1.4 });
-  const pad = new THREE.MeshStandardMaterial({ color: '#2d2f36', roughness: 1, bumpMap: weave, bumpScale: 1.4 });
-  const R = 0.058, X0 = 0.34, ZF = 0.64, zc = -0.32;
-  const T = (pts, r = R) => g.add(tube(pts, r, fabric, { segs: 72, radial: 12 }));
-  // profil de la poutre matelassée dans le plan (y, z) : section 0,23 (largeur) × 0,105 (épaisseur)
-  const profile = [[0.79, 0.06], [0.74, 0.085], [0.66, 0.12], [0.61, 0.17], [0.59, 0.24], [0.585, 0.36], [0.57, 0.42], [0.52, 0.455], [0.46, 0.48], [0.435, 0.52], [0.43, 0.6], [0.43, 0.66]];
-  const sweep = (xb) => {
-    const curve = new THREE.CatmullRomCurve3(profile.map(([y, z]) => new THREE.Vector3(xb, y, zc + z)), false, 'centripetal');
-    const w = 0.23, t = 0.105, r = 0.05, sh = new THREE.Shape();
-    const hx = w / 2, hy = t / 2;          // x = normale de Frenet (largeur, le long de x), y = binormale (épaisseur, dans le plan du profil)
-    sh.moveTo(-hx + r, -hy); sh.lineTo(hx - r, -hy); sh.absarc(hx - r, -hy + r, r, -Math.PI / 2, 0); sh.lineTo(hx, hy - r); sh.absarc(hx - r, hy - r, r, 0, Math.PI / 2);
-    sh.lineTo(-hx + r, hy); sh.absarc(-hx + r, hy - r, r, Math.PI / 2, Math.PI); sh.lineTo(-hx, -hy + r); sh.absarc(-hx + r, -hy + r, r, Math.PI, Math.PI * 1.5);
-    return mesh(new THREE.ExtrudeGeometry(sh, { extrudePath: curve, steps: 90, bevelEnabled: false, curveSegments: 3 }), pad);
-  };
-  for (const s of [-1, 1]) {
-    const x0 = s * X0, xb = s * 0.125;
-    // poteau arrière + bosse du « M » : il redescend vers le centre et se fond dans le dossier
-    T([[x0, 0.02, zc], [x0, 0.5, zc], [x0, 0.73, zc], [x0 - s * 0.01, 0.8, zc + 0.01], [x0 - s * 0.06, 0.835, zc + 0.03], [x0 - s * 0.14, 0.81, zc + 0.06], [x0 - s * 0.2, 0.76, zc + 0.075], [xb + s * 0.02, 0.76, zc + 0.075]]);
-    g.add(sweep(xb));
-    g.add(cyl(0.048, 0.048, 0.006, mat('#1a1b20', { roughness: 1 }), xb, 0.4835, zc + 0.6, 24));          // cuvette d'assise
-    // avant : arche qui revient vers le centre, jambe ronde
-    T([[s * 0.005, 0.43, zc + ZF], [s * 0.2, 0.43, zc + ZF], [x0 - s * 0.03, 0.42, zc + ZF], [x0, 0.35, zc + ZF], [x0, 0.02, zc + ZF]]);
-    for (const z of [zc, zc + ZF]) g.add(cyl(R * 0.92, R, 0.035, mat('#4a4c52', { roughness: 0.55 }), x0, 0.0175, z, 22));
-  }
-  return bake(g);
+  const root = gltf.scene.clone(true);
+  const fabric = new THREE.MeshStandardMaterial({ color: '#1c1d22', roughness: 1, metalness: 0, side: THREE.DoubleSide });
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const src = Array.isArray(o.material) ? o.material[0] : o.material;
+    const m = fabric.clone();
+    if (src.map) { m.bumpMap = src.map; m.bumpScale = 1.2; src.map.colorSpace = THREE.NoColorSpace; }
+    o.material = m; o.castShadow = o.receiveShadow = true;
+  });
+  g.add(root);
+  return g;
 }
 
 /* ───────────── LAMPADAIRE EN ARC ───────────── */

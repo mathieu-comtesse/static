@@ -1,6 +1,8 @@
 import { THREE, group, mat, inkify, ink, contactShadow } from './kit.js';
 import * as F from './furniture.js';
 import { createCharacter } from './character.js';
+import { GLTFLoader } from 'three/addons/GLTFLoader.js';
+import { loadBuffer } from './kit.js';
 import { teaSet, shoePair, updateSteam } from './tea.js';
 import { createRitual } from './ritual.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
@@ -43,7 +45,7 @@ export async function createRoom(container, bubbleEl) {
   /* ─── textures ─── */
   const loader = new THREE.TextureLoader();
   const load = (url) => new Promise((res) => loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; res(t); }, undefined, () => res(null)));
-  const [rugTex, paintTex] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg')]);
+  const [rugTex, paintTex, ekGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
 
   /* ─── mobilier ─── */
   const world = group(); scene.add(world);
@@ -94,7 +96,7 @@ export async function createRoom(container, bubbleEl) {
   add('speaker1', sp1, -1.85, -2.4, 0.2, 0, 0.5).scale.setScalar(SPK);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
-  const ek = F.ekstrem(); add('ekstrem', ek, 2.3, -0.95, -0.45, 0, 0.35).scale.setScalar(EKS);
+  const ek = F.ekstremFrom(ekGltf); add('ekstrem', ek, 2.3, -0.95, -0.45, 0, 0.35).scale.setScalar(EKS);
   // rituel du thé : tatami, zabutons, ustensiles ; origine = centre du zabuton de l'invité
   const TEA = { x: 0.0, z: 0.25, y: 0.02 };
   const tea = teaSet();
@@ -255,7 +257,7 @@ export async function createRoom(container, bubbleEl) {
   const deskYaw = -Math.PI / 2 + 0.15, ekYaw = -0.45;
   const stations = {
     desk:     { label: 'Au bureau',        clip: 'Driving_Loop',        y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw },
-    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.34, face: 'happy',   pos: seat(2.3, -0.95, ekYaw, -0.05), yaw: ekYaw },
+    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.46, face: 'happy',   pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw },
     usm:      { label: 'Un vinyle',        clip: 'Idle_Loop',           y: 0.0, face: 'happy',   ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true },
     cha:      { label: 'Cérémonie du thé', ritual: true, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0 },
     bonsai:   { label: 'J\u2019arrose le bonsaï', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-3.68, 0, 1.78], yaw: 0.98 },
