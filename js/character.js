@@ -17,12 +17,14 @@ function faceTexture(kind) {
   const g = c.getContext('2d'); g.clearRect(0, 0, W, H);
   const r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
   const eyeY = 45, ex = [43, 85];
+  // yeux ouverts : blanc de l'œil, iris bleu, pupille sombre, reflet ; seul « blink » ferme la paupière
+  const eye = (x, h = 20, up = 0) => { r(x - 8, eyeY + up, 16, h, '#f7f9fc'); r(x - 5, eyeY + up + 2, 10, h - 4, '#2f7fe0'); r(x - 5, eyeY + up + 2, 10, 3, '#1f5fb8'); r(x - 2, eyeY + up + 6, 4, h - 11, '#10223d'); r(x + 1, eyeY + up + 3, 3, 3, '#ffffff'); r(x - 8, eyeY + up - 1, 16, 2, '#2a1a10'); };
   const eyes = {
-    blink: () => ex.forEach((x) => r(x - 10, eyeY + 9, 20, 4, C.eye)),
-    amazed: () => ex.forEach((x) => r(x - 6, eyeY, 12, 17, C.eye)),
-    happy: () => ex.forEach((x) => { r(x - 10, eyeY + 8, 20, 4, C.eye); r(x - 12, eyeY + 10, 4, 3, C.eye); r(x + 8, eyeY + 10, 4, 3, C.eye); }),
+    blink: () => ex.forEach((x) => { r(x - 9, eyeY + 9, 18, 3, '#2a1a10'); }),
+    amazed: () => ex.forEach((x) => eye(x, 24, -2)),
+    happy: () => ex.forEach((x) => eye(x, 17, 2)),
   };
-  (eyes[kind] || (() => ex.forEach((x) => r(x - 6, eyeY, 12, 20, C.eye))))();
+  (eyes[kind] || (() => ex.forEach((x) => eye(x))))();
   r(61, 66, 6, 9, C.skinShade);
   const mouth = {
     neutral: () => r(48, 91, 32, 5, C.mouth),
@@ -198,14 +200,33 @@ export async function createCharacter({
       const local = bone.matrixWorld.clone().invert().multiply(world);
       shoe.matrixAutoUpdate = true; local.decompose(shoe.position, shoe.quaternion, shoe.scale);
       bone.add(shoe); nbShoes.push(shoe);
-      // jambe de pantalon baggy : le rig s'arrêtait aux genoux (effet short) ; un cône évasé, porté par le mollet, descend jusqu'au-dessus de la basket
+      // jambe de pantalon baggy, modélisée : tube évasé à anneaux elliptiques, plis verticaux qui s'accentuent vers le bas, froissements au-dessus du revers,
+      // ourlet plus long derrière que devant (il repose sur la languette de la basket), intérieur sombre. Porté par le mollet, suit la jambe.
       const calf = bone.parent, knee = calf.getWorldPosition(new THREE.Vector3());
-      const A = new THREE.Vector3(f0.x, ground + 0.125, f0.z), P1 = knee.clone().lerp(A, 0.45), len = P1.distanceTo(A);
-      const dir = A.clone().sub(P1).normalize(), xs = new THREE.Vector3(1, 0, 0).cross(dir).normalize(), zs = dir.clone().cross(xs);
-      const sw = new THREE.Matrix4().makeBasis(xs, dir.clone().negate(), zs).setPosition(P1.x + dir.x * len / 2, P1.y + dir.y * len / 2, P1.z + dir.z * len / 2);
-      const pant = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.108, len, 14, 1, true), new THREE.MeshStandardMaterial({ color: '#59627e', roughness: 0.92, side: THREE.DoubleSide }));
+      const A = new THREE.Vector3(f0.x, ground + 0.115, f0.z), P1 = knee.clone().lerp(A, 0.38);
+      const axis = A.clone().sub(P1), len = axis.length(); axis.normalize();
+      const fwdW = new THREE.Vector3().subVectors(b0, f0); fwdW.y = 0; fwdW.normalize();             // avant du pied
+      const sideV = new THREE.Vector3().crossVectors(axis, fwdW).normalize(), front = new THREE.Vector3().crossVectors(sideV, axis).normalize();
+      const RINGS = 12, SEG = 20, pos = [], idx = [], rnd = (i) => { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s); };
+      for (let i = 0; i <= RINGS; i++) {
+        const t = i / RINGS, e = t * t * (3 - 2 * t);
+        const rx0 = 0.062 + 0.058 * e, rz0 = 0.058 + 0.052 * e;                                    // largeur : légèrement plus large côté côtés que devant/derrière
+        const pinch = i === RINGS - 1 ? 0.93 : i === RINGS ? 1.02 : 1;                             // revers : léger resserrement puis rebord
+        for (let j = 0; j < SEG; j++) {
+          const th = (j / SEG) * Math.PI * 2, fold = Math.sin(th * 5 + t * 2.2) * 0.011 * e + (rnd(i * 31 + j) - 0.5) * 0.006 * e + Math.sin(th * 3 - t * 5) * 0.006 * e;
+          const hem = i === RINGS ? -0.045 * Math.max(0, Math.cos(th)) + 0.02 * Math.max(0, -Math.cos(th)) : 0;     // ourlet : remonte devant, descend derrière
+          const rr = 1 + (fold / 0.06);
+          const x = Math.sin(th) * rx0 * pinch * rr, z = Math.cos(th) * rz0 * pinch * rr;
+          const drop = t * len + hem + (rnd(i * 7 + j) - 0.5) * 0.004;
+          pos.push(P1.x + sideV.x * x + front.x * z + axis.x * drop, P1.y + sideV.y * x + front.y * z + axis.y * drop, P1.z + sideV.z * x + front.z * z + axis.z * drop);
+        }
+      }
+      for (let i = 0; i < RINGS; i++) for (let j = 0; j < SEG; j++) { const a0 = i * SEG + j, a1 = i * SEG + (j + 1) % SEG, b0_ = (i + 1) * SEG + j, b1 = (i + 1) * SEG + (j + 1) % SEG; idx.push(a0, b0_, a1, a1, b0_, b1); }
+      const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); pg.setIndex(idx);
+      const flat = pg.toNonIndexed(); flat.computeVertexNormals();
+      const pant = new THREE.Mesh(flat, new THREE.MeshStandardMaterial({ color: '#59627e', roughness: 0.92, flatShading: true, side: THREE.DoubleSide }));
       pant.castShadow = true; pant.frustumCulled = false;
-      calf.matrixWorld.clone().invert().multiply(sw).decompose(pant.position, pant.quaternion, pant.scale);
+      pant.applyMatrix4(calf.matrixWorld.clone().invert());
       calf.add(pant); nbShoes.push(pant);
     }
     act.stop(); tm.stopAllAction(); tm.uncacheRoot(group);
@@ -288,7 +309,7 @@ export async function createCharacter({
   // GAIT_STABILIZER : pose neutre de référence pour que bassin et torse ne restent pas inclinés d'un côté après le retarget.
   const gaitRest = {};
   for (const n of ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01']) if (bones[n]) gaitRest[n] = bones[n].quaternion.clone();
-  let ov = null, ovW = 0, post = null, lean = 0, leanW = 0;
+  let ov = null, ovW = 0, post = null, lean = 0, leanW = 0, levelW = 0; const LEVEL_SIGN = -1;
 
   const _pq = new THREE.Quaternion(), _qg = new THREE.Quaternion(), _R = new THREE.Quaternion(), _M = new THREE.Quaternion(), _v = new THREE.Vector3();
   const _fw = new THREE.Vector3(), _tg = new THREE.Vector3(), _th = new THREE.Vector3(), _ax = new THREE.Vector3(), _UP = new THREE.Vector3(0, 1, 0), view = { right: new THREE.Vector3(1, 0, 0), toCam: new THREE.Vector3(0, 0, 1) };
@@ -382,6 +403,13 @@ export async function createCharacter({
         if (ov.head && bones.Head) rotChar(bones.Head, ov.head * ovW);
       }
       if (post) post(dt, t);
+      // mise à niveau : la ligne des épaules reste horizontale (le retarget laissait ~7° de roulis debout et ~11° assis, d'où le côté « de travers »)
+      if (bones.upperarm_l && bones.upperarm_r && bones.spine_01) {
+        const a = group.worldToLocal(bones.upperarm_l.getWorldPosition(_v.clone())), b2 = group.worldToLocal(bones.upperarm_r.getWorldPosition(_v.clone()));
+        const roll = Math.atan2(a.y - b2.y, Math.hypot(a.x - b2.x, a.z - b2.z));
+        levelW += (roll - levelW) * (1 - Math.exp(-dt * 12));
+        for (const n of ['spine_01', 'spine_02', 'spine_03']) rotChar(bones[n], levelW * LEVEL_SIGN / 3, _Z);
+      }
       leanW += (lean - leanW) * (1 - Math.exp(-dt * 6));
       if (Math.abs(leanW) > 1e-3) for (const n of ['spine_01', 'spine_02', 'spine_03']) if (bones[n]) rotChar(bones[n], leanW / 3, _Z);        // redresse le buste (le rig importé penche d'un côté en marchant)
       if (portrait.enabled && bones.Head) {

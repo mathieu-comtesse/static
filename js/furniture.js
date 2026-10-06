@@ -1045,3 +1045,28 @@ export function borneFromGltf(gltf, k = 1.0) {
   g.userData.glow = glowM;
   return g;
 }
+
+/* ───────────── LAMPE AKARI (Isamu Noguchi) ─────────────
+ * Modèle 3D Warehouse « AKARI LIGHT NOGUCHI JAPAN » d'Alana Pacheco : abat-jour en papier washi sur structure noire (≈ 0,43 m). Les lignes d'esquisse du fichier sont retirées,
+ * le modèle est posé à y = 0 et centré. Le papier devient un matériau lumineux (glow) allumé la nuit.
+ */
+export function akariFromGltf(gltf, height = 0.5) {
+  const g = group();
+  const root = gltf.scene.clone(true);
+  const lines = []; root.traverse((o) => { if (o.isLine || o.isLineSegments || o.isPoints) lines.push(o); });
+  lines.forEach((o) => o.removeFromParent());
+  root.updateMatrixWorld(true);                                   // le fichier est déjà en Y vers le haut : lampe couchée sur son support (0,25 × 0,43 m)
+  const bb = new THREE.Box3().setFromObject(root), k = height / (bb.max.z - bb.min.z);
+  const glow = new THREE.MeshBasicMaterial({ color: '#cfc8b4', toneMapped: false, side: THREE.DoubleSide });
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = o.receiveShadow = true;
+    const m = o.material, c = m.color ? m.color.getHexString() : '';
+    if (c === 'ede8c3' || (m.color && m.color.r > 0.7 && m.color.g > 0.7)) o.material = glow;
+    else { o.material = m.clone(); o.material.roughness = 0.5; o.material.metalness = 0.4; o.material.side = THREE.DoubleSide; }
+  });
+  const inner = group(root); inner.scale.setScalar(k);
+  inner.position.set(-(bb.max.x + bb.min.x) / 2 * k, -bb.min.y * k, -(bb.max.z + bb.min.z) / 2 * k);
+  g.add(inner); g.userData.glow = glow;
+  return g;
+}
