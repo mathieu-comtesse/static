@@ -88,13 +88,13 @@ export async function createRoom(container, bubbleEl) {
   const chair = F.officeChairFrom(setuGltf);
   add('chair', chair, -2.15, 0.3, -Math.PI / 2 + 0.15, 0, 0.2);
 
-  const bench = F.bench(); add('bench', bench, -3.1, 2.15, 0, 0, 0.3);
-  const bonsai = F.bonsai(); inkify(bonsai, { skip: (o) => !['9b9a92'].includes(o.material.color.getHexString()) }); add('bonsai', bonsai, -3.1, 2.15, 0.5, 0.28, 0.42);
+  const STOOL_X = 2.0, STOOL_Z = 4.55;           // tabouret à droite du canapé, portant le bonsaï
+  const bonsai = F.bonsai(); inkify(bonsai, { skip: (o) => !['9b9a92'].includes(o.material.color.getHexString()) }); add('bonsai', bonsai, STOOL_X, STOOL_Z, 0.5, 0.372, 0.42);
   const sp1 = F.speakerFromGltf(jblGltf, 1.15), sp2 = F.speakerFromGltf(jblGltf, 1.15);
   const alo = F.alocasia(); inkify(alo, { skip: (o) => !(o.material.map && o.material.map.image && o.material.map.image.width === 128 && o.material.side === THREE.DoubleSide) });
-  add('alocasia', alo, -2.05, -1.4, 0.6, 0, 0.9).scale.setScalar(0.85);
+  add('alocasia', alo, -3.1, 2.3, 0.6, 0, 0.9).scale.setScalar(0.9);
   add('sofa', F.sofaFrom(sofaGltf, 2.2, { recline: 0, slide: 0, lateral: 0 }), 0.35, 4.55, Math.PI, 0, 0.95);
-  add('speaker1', sp1, -1.85, -2.4, 0.2, 0, 0.5);
+  add('speaker1', sp1, -2.6, -2.5, 0.35, 0, 0.5);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
   const ek = F.ekstremFrom(ekGltf); add('ekstrem', ek, 2.3, -0.95, -0.45, 0, 0.35).scale.setScalar(EKS);
@@ -103,7 +103,7 @@ export async function createRoom(container, bubbleEl) {
   const tea = teaSet();
   add('cha', tea, TEA.x, TEA.z, 0, TEA.y, 0.5, world, 0);
   const shoes = shoePair(); inkify(shoes); add('shoes', shoes, TEA.x, TEA.z - 0.42, 0, TEA.y, 0.6, world, 0);
-  const stool = F.stool(); add('stool', stool, TEA.x, TEA.z + 1.95, 0.2, TEA.y, 0.55);
+  const stool = F.stool(); add('stool', stool, STOOL_X, STOOL_Z, 0.2, 0, 0.55);
 
   const usmSet = group();
   usmSet.add(F.usm());
@@ -122,7 +122,7 @@ export async function createRoom(container, bubbleEl) {
 
   if (paintTex) { const pt = add('painting', F.painting(paintTex), -0.7, -2.95, 0, 1.35, 0.7, world, 0); pt.scale.setScalar(1.3); }
   const dra = F.dracaena(); inkify(dra, { skip: (o) => o.material.color.getHexString() !== 'b3a893' }); add('dracaena', dra, 2.85, -2.45, 0.3, 0, 0.65);
-  add('speaker2', sp2, 0.4, -2.4, -0.2, 0, 0.75);
+  add('speaker2', sp2, 1.25, -2.5, -0.35, 0, 0.75);
   add('shelf1', F.shelf(), 4.6, -1.3, Math.PI / 2, 0, 0.8);
 
   // positions des sources lumineuses (repère monde)
@@ -263,12 +263,12 @@ export async function createRoom(container, bubbleEl) {
     desk:     { label: 'Au bureau',        clip: 'Driving_Loop',        y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw },
     ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.46, face: 'happy',   pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw },
     usm:      { label: 'Un vinyle',        clip: 'Idle_Loop',           y: 0.0, face: 'happy',   ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true },
-    alocasia: { label: 'J\u2019arrose l\u2019alocasia', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-1.1, 0, -1.25], yaw: -1.5 },
+    alocasia: { label: 'J\u2019arrose l\u2019alocasia', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-1.95, 0, 2.3], yaw: -1.57 },
     cha:      { label: 'Cérémonie du thé', ritual: true, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0 },
-    bonsai:   { label: 'J\u2019arrose le bonsaï', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-3.68, 0, 1.78], yaw: 0.98 },
+    bonsai:   { label: 'J\u2019arrose le bonsaï', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [2.85, 0, 4.55], yaw: -1.57 },
     dracaena: { label: 'J\u2019arrose la plante', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [2.45, 0, -1.55], yaw: 2.3 },
   };
-  stations.chair = stations.desk; stations.bench = stations.bonsai; stations.stool = stations.cha; stations.shoes = stations.cha;
+  stations.chair = stations.desk; stations.stool = stations.bonsai; stations.shoes = stations.cha;
 
   let music = false, current = null, bubbleT = 0;
   const speakers = ['speaker1', 'speaker2'].map((id) => items.find((i) => i.id === id));
