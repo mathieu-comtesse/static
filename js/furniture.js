@@ -168,25 +168,69 @@ export function brontes() {
   return g;
 }
 
-/* ───────────── FAUTEUIL DE BUREAU ───────────── */
+/* ───────────── SIÈGE SETU (Herman Miller, accoudoirs fixes, gris Mineral) ─────────────
+ * Repère : avant = +z, assise à 0,46 m. Dossier en maille suivant une colonne vertébrale en S (fine en haut, nervurée en bas),
+ * assise en maille à bord avant enroulé, accoudoirs en boucle blanche fixés au cadre, étoile à cinq branches, roulettes noires. */
 export function officeChair() {
   const g = group();
-  const frame = mat('#d8d2bd'), brown = mat('#6d5846', { roughness: 0.95 }), black = mat('#18191b');
-  const pivot = group();
+  const frame = mat('#e7e8e6', { roughness: 0.45 }), mesh_ = new THREE.MeshStandardMaterial({ color: '#b1b4b8', roughness: 0.9, side: THREE.DoubleSide });
+  const rim = mat('#8e9195', { roughness: 0.85 }), black = mat('#17181a', { roughness: 0.6 }), taupe = mat('#8f8a82', { roughness: 0.4, metalness: 0.4 });
+  const base = mat('#dedfdd', { roughness: 0.5 });
+  // étoile à cinq branches effilées + roulettes doubles
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    const spoke = box(0.3, 0.032, 0.045, frame, 0.15, 0, 0); spoke.rotation.y = 0; 
-    const s = group(spoke, sph(0.03, black, 0.3, -0.01, 0));
-    s.rotation.y = a; s.position.y = 0.06; g.add(s);
+    const arm = group();
+    arm.add(bone([0.03, 0.12, 0], [0.33, 0.07, 0], 0.03, 0.018, base, 8));
+    const cw = group(); cw.position.set(0.335, 0.045, 0);
+    cw.add(cyl(0.012, 0.012, 0.04, black, 0, 0.03, 0, 8));
+    for (const dz of [-0.016, 0.016]) { const w = cyl(0.03, 0.03, 0.022, black, 0, 0, dz, 14); w.rotation.x = Math.PI / 2; cw.add(w); }
+    arm.add(cw); arm.rotation.y = a; g.add(arm);
   }
-  g.add(cyl(0.028, 0.034, 0.3, mat('#a9adb1', { metalness: 0.6, roughness: 0.4 }), 0, 0.22, 0));
-  pivot.add(rbox(0.5, 0.07, 0.5, 0.03, brown, 0, 0.46, 0.02));
-  pivot.add(rbox(0.46, 0.55, 0.035, 0.016, brown, 0, 0.8, -0.24).rotateX(0.1));
-  for (const s of [-1, 1]) pivot.add(bone([s * 0.22, 0.48, -0.2], [s * 0.225, 0.78, -0.27], 0.014, 0.014, frame));
-  pivot.add(rbox(0.5, 0.025, 0.04, 0.01, frame, 0, 0.5, -0.22));
-  g.add(pivot);
+  g.add(cyl(0.05, 0.07, 0.07, base, 0, 0.125, 0, 16));
+  g.add(cyl(0.022, 0.022, 0.16, black, 0, 0.2, 0, 12));
+  g.add(cyl(0.02, 0.02, 0.16, taupe, 0, 0.32, 0, 12));
+  g.add(rbox(0.3, 0.045, 0.3, 0.02, base, 0, 0.405, 0.0));
+  // assise : plateau en maille, bord avant enroulé vers le bas, cadre latéral blanc
+  const SW = 0.5;
+  const seat = new THREE.Shape();
+  seat.moveTo(-SW / 2, -0.22); seat.lineTo(SW / 2, -0.22); seat.lineTo(SW / 2, 0.2); seat.quadraticCurveTo(SW / 2, 0.24, SW / 2 - 0.05, 0.24); seat.lineTo(-SW / 2 + 0.05, 0.24); seat.quadraticCurveTo(-SW / 2, 0.24, -SW / 2, 0.2); seat.closePath();
+  const seatM = mesh(new THREE.ExtrudeGeometry(seat, { depth: 0.014, bevelEnabled: false }), mesh_);
+  seatM.rotation.x = Math.PI / 2; seatM.position.y = 0.46; g.add(seatM);
+  g.add(tube([[-SW / 2 + 0.01, 0.455, 0.2], [-SW / 2 + 0.005, 0.455, 0.0], [-SW / 2 + 0.01, 0.46, -0.2]], 0.011, frame, { segs: 10, radial: 8 }));
+  g.add(tube([[SW / 2 - 0.01, 0.455, 0.2], [SW / 2 - 0.005, 0.455, 0.0], [SW / 2 - 0.01, 0.46, -0.2]], 0.011, frame, { segs: 10, radial: 8 }));
+  g.add(tube([[-SW / 2 + 0.03, 0.46, 0.235], [0, 0.462, 0.245], [SW / 2 - 0.03, 0.46, 0.235]], 0.016, rim, { segs: 12, radial: 8 }));      // bord enroulé
+  g.add(tube([[-SW / 2 + 0.03, 0.456, 0.235], [-SW / 2 + 0.012, 0.43, 0.235]], 0.01, rim, { segs: 4, radial: 6, caps: false }));
+  g.add(tube([[SW / 2 - 0.03, 0.456, 0.235], [SW / 2 - 0.012, 0.43, 0.235]], 0.01, rim, { segs: 4, radial: 6, caps: false }));
+  // dossier : profil en S, du fond d'assise vers le haut incliné
+  const prof = [[0.46, -0.215], [0.5, -0.255], [0.56, -0.265], [0.64, -0.245], [0.73, -0.265], [0.82, -0.295], [0.9, -0.325], [0.955, -0.345]];
+  const curve = new THREE.CatmullRomCurve3(prof.map(([y, z]) => new THREE.Vector3(0, y, z)), false, 'centripetal');
+  const N = 28, BW = 0.4, pos = [], idx = [], uv = [];
+  for (let i = 0; i <= N; i++) {
+    const p = curve.getPoint(i / N), w = BW / 2 * (0.88 + 0.12 * Math.min(1, i / (N * 0.45)));
+    for (const sx of [-1, 1]) { pos.push(sx * w, p.y, p.z); uv.push(sx < 0 ? 0 : 1, i / N); }
+  }
+  for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); bg.setIndex(idx); bg.computeVertexNormals();
+  g.add(mesh(bg, mesh_));
+  const offs = (dx, dz = 0) => prof.map(([y, z]) => [dx, y, z + dz]);
+  for (const sx of [-1, 1]) g.add(tube(offs(sx * (BW / 2 + 0.014)), 0.014, frame, { segs: 60, radial: 10 }));
+  g.add(tube([[-BW / 2 - 0.014, 0.955, -0.345], [0, 0.97, -0.352], [BW / 2 + 0.014, 0.955, -0.345]], 0.017, rim, { segs: 24, radial: 10 }));           // jonc supérieur
+  // colonne vertébrale nervurée (bas du dossier) : côtes blanches de chaque côté
+  for (let i = 0; i < 8; i++) {
+    const p = curve.getPoint(0.03 + i * 0.05);
+    for (const sx of [-1, 1]) g.add(rbox(0.032, 0.012, 0.03, 0.004, frame, sx * (BW / 2 + 0.02), p.y, p.z - 0.012));
+  }
+  g.add(tube([[0, 0.43, -0.12], [0, 0.46, -0.2], [0, 0.49, -0.25]], 0.014, frame, { segs: 8, radial: 8 }));
+  g.add(box(0.46, 0.012, 0.03, frame, 0, 0.445, -0.2));
+  // accoudoirs fixes en boucle blanche
+  for (const sx of [-1, 1]) {
+    const x = sx * (SW / 2 + 0.012);
+    g.add(tube([[x, 0.47, -0.2], [x, 0.56, -0.18], [x + sx * 0.012, 0.64, -0.1], [x + sx * 0.012, 0.665, 0.0], [x + sx * 0.012, 0.65, 0.1], [x, 0.58, 0.145], [x, 0.5, 0.12], [x, 0.46, 0.06]], 0.0125, frame, { segs: 80, radial: 10, caps: false }));
+    g.add(rbox(0.04, 0.012, 0.2, 0.005, frame, x + sx * 0.012, 0.67, 0.0));
+  }
+  const pivot = g;
   g.userData.pivot = pivot;
-  return g;
+  return bake(g);
 }
 
 /* ───────────── PLANTES ───────────── */
