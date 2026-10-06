@@ -1,4 +1,5 @@
 // Données des deux interfaces : projets perso (console) et projets pro (poste Windows XP). Textes repris du CV (cv-mathieu_comtesse).
+export const TALAS_URL = "village-talas-scene.html";
 export const CV = "https://mathieu-comtesse.github.io/cv-mathieu_comtesse/";
 export const PERSO = [
  {
@@ -181,6 +182,7 @@ export const PRO = [
   "lead": "Réalisé dans le cadre de la formation : le Village Talas transforme sept chapitres de l’ISO 45001 en ateliers et mini-jeux interactifs, afin de faire apprendre la norme par l’expérience plutôt que par une lecture linéaire.",
   "gain": "Sept ateliers, sept chapitres de la norme et une dizaine de mini-jeux réunis dans une expérience 3D jouable.",
   "team": "Un support de formation qui met en scène les exigences de l’ISO 45001 et rend leur appropriation plus concrète.",
-  "url": "projets-universitaires.html"
+  "url": "village-talas-scene.html",
+  "play": true
  }
 ];

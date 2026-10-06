@@ -1,4 +1,5 @@
-import { PRO_CARDS, PERSO_CARDS, CV } from './projects-data.js';
+import { PRO_CARDS, PERSO_CARDS, UNIV, CV } from './projects-data.js';
+import { playFullscreen } from './play.js';
 import { initFlip } from './flip.js';
 import { initFlipText } from './fliptext.js';
 import { createMarquee } from './marquee.js';
@@ -38,7 +39,15 @@ function initDetail() {
   };
 }
 
+function initUniv() {
+  const host = document.getElementById('univ'); if (!host) return;
+  host.innerHTML = `<button class="univ-card" type="button" aria-label="Jouer à ${esc(UNIV.title)}"><span class="univ-img" style="background-image:url('${UNIV.img}')"></span>
+    <span class="univ-txt"><span class="k">Projet universitaire · ${esc(UNIV.sub)}</span><h3>${esc(UNIV.title)}</h3><p>${esc(UNIV.desc)}</p><span class="btn dark">Jouer en plein écran</span></span></button>`;
+  host.querySelector('.univ-card').addEventListener('click', () => playFullscreen(CV + UNIV.url, UNIV.title));
+}
+
 export function initHome() {
+  initUniv();
   initFlipText(); initFlip();
   const open = initDetail();
   for (const [id, list, kind, dir] of [['mq-pro', PRO_CARDS, 'pro', 1], ['mq-perso', PERSO_CARDS, 'perso', -1]]) {

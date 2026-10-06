@@ -16,9 +16,10 @@ export const PRO_CARDS = [
   G('suivi', 'Retrouver tout le suivi', 'OT, équipement, bâtiment', '10–15 min', 'gagnées par recherche (≈ 1 h quand elle passe par d’autres outils)', '118–589 k€', 'par an, estimation à confirmer (14 utilisateurs, ≈ 26 € la recherche)', 'assets/projets/suivi.jpg', 'projet-2'),
   G('gares', 'Gares prioritaires', 'Vigilance et criticité des gares', '10–15 min', 'gagnées par équipement consulté, probablement davantage', '7 900–11 800 €', 'par an (≈ 1 000 équipements, 2 consultations par jour)', 'assets/projets/gares.jpg', 'projet-gares'),
   G('terrain', 'Dialogue terrain', 'Processus EPM / EPTx', '16', 'arbitrages obtenus en réunion d’agence', 'EPM light', 'processus simplifié proposé à l’arbitrage', 'assets/projets/terrain.jpg', 'projet-5'),
-  G('talas', 'Village Talas', 'Jeu sérieux ISO 45001', '7 chapitres', 'de la norme transformés en ateliers jouables', '10 jeux', 'réunis dans une expérience 3D de formation', 'assets/projets/talas.jpg', 'projet-universitaire'),
   G('charte', 'Interface commune', 'Une UI/UX pour tous les outils', '1 charte', 'commune à tous les outils construits', '0 donnée', 'envoyée hors du poste : traitement 100 % local', 'assets/projets/charte.jpg', 'projet-charte'),
 ];
+
+export const UNIV = { id: 'talas', title: 'Village Talas', sub: 'Jeu sérieux ISO 45001', img: 'assets/projets/talas.jpg', url: 'village-talas-scene.html', desc: 'Sept ateliers, un par chapitre de l’ISO 45001, et une dizaine de mini-jeux dans un village en 3D : on apprend la norme en agissant plutôt qu’en lisant.' };
 
 export const PERSO_CARDS = PERSO.map((p) => ({ id: p.id, title: p.n, sub: p.genre, desc: p.desc, img: p.img, url: p.url, pixel: true }));
 export { CV };

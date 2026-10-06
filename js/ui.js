@@ -312,6 +312,13 @@ function xpApp(onClose) {
   }
   let explorer = null;
   function openProject(p) {
+    if (p.play) {                                    // projet jouable (Village Talas) : fenêtre agrandie plein écran avec le jeu
+      const body = el('div'); body.style.cssText = 'display:flex;flex:1;min-height:0;background:#000';
+      body.innerHTML = `<iframe title="${esc(p.title)}" allow="autoplay; fullscreen; gamepad" allowfullscreen src="${CV}${p.url}" style="flex:1;border:0;width:100%;height:100%"></iframe>`;
+      const w = win({ title: `${p.title} - Windows Media Player`, icon: FOLDER('g' + p.id), w: innerWidth, h: innerHeight - 30, body, x: 0, y: 0 });
+      w.el.classList.add('max'); const r = [...wins].find((x) => x.el === w.el); if (r) focus(r);
+      return;
+    }
     const pg = PAGES[p.id]; if (!pg) return;
     const body = el('div'); body.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0';
     body.innerHTML = `<div class="menu"><span>Fichier</span><span>Edition</span><span>Affichage</span><span>Favoris</span><span>Outils</span><span>?</span></div>
