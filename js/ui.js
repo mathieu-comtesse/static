@@ -25,9 +25,9 @@ const CSS = `
 #retro li:not(.sel)::before{content:"";width:10px}
 @keyframes blk{50%{opacity:0}}
 #retro .card{border:2px solid #28418a;background:#07123a;padding:clamp(10px,1.6vw,18px);display:flex;flex-direction:column;gap:14px;min-height:0;overflow:auto}
-#retro .cover{aspect-ratio:16/9;max-height:34vh;border:2px solid #000;position:relative;display:flex;align-items:flex-end;padding:12px;font-size:clamp(10px,1.8vw,18px);line-height:1.4;color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.6);overflow:hidden}
-#retro .cover::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.1) 0 8px,transparent 8px 16px)}
-#retro .cover span{position:relative}
+#retro .cover{aspect-ratio:4/3;max-height:36vh;align-self:center;max-width:100%;border:2px solid #000;position:relative;display:flex;align-items:flex-end;padding:0;background-size:100% 100%;image-rendering:pixelated;filter:saturate(.78) contrast(1.08) sepia(.12);box-shadow:0 0 0 2px #28418a,0 0 18px rgba(80,120,255,.35);font-size:clamp(10px,1.8vw,18px);line-height:1.4;color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.6);overflow:hidden}
+#retro .cover::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+#retro .cover span{position:relative;width:100%;padding:18px 12px 8px;background:linear-gradient(transparent,rgba(2,6,24,.9))}
 #retro .tag{font-size:clamp(7px,1vw,10px);color:#ffd34a}
 #retro .desc{font-family:"Courier New",monospace;font-size:clamp(12px,1.5vw,16px);line-height:1.5;color:#d6e4ff}
 #retro .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}
@@ -169,7 +169,7 @@ function retroApp(onClose) {
     const top = keep ? scr.querySelector('ul')?.scrollTop : 0;
     scr.innerHTML = `<div class="head"><div><h1>SELECTION DU JEU</h1><div class="sub">MEMORY CARD 1 · ${PERSO.length} PROJETS</div></div><div class="sub">${String(idx + 1).padStart(2, '0')}/${PERSO.length}</div></div>
       <div class="body"><ul>${PERSO.map((p, i) => `<li data-i="${i}" class="${i === idx ? 'sel' : ''}"><i>${String(i + 1).padStart(2, '0')}</i>${esc(p.n)}</li>`).join('')}</ul>
-      <div class="card"><div class="cover" style="background:linear-gradient(135deg,${g.color},#0a0f2e)"><span>${esc(g.n)}</span></div><div class="tag">${esc(g.genre).toUpperCase()}</div><div class="desc">${esc(g.desc)}</div>
+      <div class="card"><div class="cover" style="background-image:url('${g.img}')"><span>${esc(g.n)}</span></div><div class="tag">${esc(g.genre).toUpperCase()}</div><div class="desc">${esc(g.desc)}</div>
       <div class="btns"><button data-k="ok">▶ START</button><a class="b alt" target="_blank" rel="noopener" href="${CV}${g.url}">↗ NOUVEL ONGLET</a></div></div></div>
       ${foot([['x', 'VALIDER', 'ok'], ['o', 'QUITTER', 'back'], ['t', 'HAUT', 'up']])}`;
     const ul = scr.querySelector('ul'); if (top) ul.scrollTop = top; ul.querySelector('.sel')?.scrollIntoView({ block: 'nearest' });
@@ -178,13 +178,13 @@ function retroApp(onClose) {
   }
   function load() {
     view = 'load'; const g = PERSO[idx];
-    scr.innerHTML = `<div class="center"><div class="title" style="--c:${g.color}">${esc(g.n)}</div><div class="sub">NOW LOADING</div><div class="bar"><b></b></div></div>`;
+    scr.innerHTML = `<div class="center"><div class="cover" style="background-image:url('${g.img}');width:min(300px,50vw);max-height:30vh"><span></span></div><div class="title" style="--c:${g.color}">${esc(g.n)}</div><div class="sub">NOW LOADING</div><div class="bar"><b></b></div></div>`;
     const b = scr.querySelector('b'); let p = 0;
     (function step() { p += 6 + Math.random() * 14; b.style.width = Math.min(p, 100) + '%'; if (p < 100) timer = setTimeout(step, 80); else timer = setTimeout(title, 220); })();
   }
   function title() {
     view = 'title'; const g = PERSO[idx];
-    scr.innerHTML = `<div class="center"><div class="tag">${esc(g.genre).toUpperCase()}</div><div class="title" style="--c:${g.color}">${esc(g.n)}</div><div class="desc" style="max-width:62ch">${esc(g.desc)}</div><div class="press" data-k="ok" style="cursor:pointer">PRESS START</div>
+    scr.innerHTML = `<div class="center"><div class="cover" style="background-image:url('${g.img}');width:min(300px,45vw);max-height:26vh"><span></span></div><div class="tag">${esc(g.genre).toUpperCase()}</div><div class="title" style="--c:${g.color}">${esc(g.n)}</div><div class="desc" style="max-width:62ch">${esc(g.desc)}</div><div class="press" data-k="ok" style="cursor:pointer">PRESS START</div>
       <div class="btns"><button data-k="ok">▶ START</button><a class="b alt" target="_blank" rel="noopener" href="${CV}${g.url}">↗ NOUVEL ONGLET</a></div></div>${foot([['x', 'START', 'ok'], ['o', 'RETOUR', 'back']])}`;
     bind();
   }
