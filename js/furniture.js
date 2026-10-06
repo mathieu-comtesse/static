@@ -359,6 +359,67 @@ export function dracaena() {
   return bake(g);
 }
 
+/* ───────────── ALOCASIA (grande plante à feuilles en flèche) en pot de terre cuite ─────────────
+ * Tronc court et épais à bagues fibreuses, 8 feuilles sur longs pétioles clairs : limbes bleu-vert foncé en flèche, nervure médiane claire,
+ * nervures latérales, bords ondulés, dessous pâle. Hauteur ≈ 1,9 m. */
+export function alocasia() {
+  const r = rng(31);
+  const g = group();
+  // pot en terre cuite, ventre rond, lèvre épaisse
+  const prof = [[0.0, 0.0], [0.13, 0.0], [0.19, 0.05], [0.235, 0.15], [0.245, 0.27], [0.225, 0.36], [0.24, 0.385], [0.245, 0.41], [0.225, 0.41], [0.215, 0.39]];
+  const potTex = canvasTexture(128, 128, (c, w, h) => { c.fillStyle = '#b4623a'; c.fillRect(0, 0, w, h); for (let i = 0; i < 160; i++) { c.fillStyle = `rgba(${r() > 0.5 ? '255,200,160' : '90,40,20'},${0.06 + r() * 0.1})`; c.fillRect(r() * w, r() * h, 2 + r() * 8, 1 + r() * 3); } });
+  g.add(mesh(new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x, y)), 28), new THREE.MeshStandardMaterial({ map: potTex, roughness: 0.9, side: THREE.DoubleSide })));
+  const soil = mat('#3a2f29', { roughness: 1 });
+  g.add(cyl(0.215, 0.215, 0.012, soil, 0, 0.37, 0, 28));
+  for (let i = 0; i < 26; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * 0.2; g.add(box(0.02, 0.012, 0.016, mat(r() > 0.5 ? '#d8d2c4' : '#7d7468'), Math.cos(a) * d, 0.379, Math.sin(a) * d)).rotation.y = r() * 3; }
+  // tronc fibreux
+  const bark = mat('#8a6a49', { roughness: 1 });
+  g.add(bone([0, 0.37, 0], [0.01, 0.66, 0], 0.062, 0.05, bark, 9));
+  for (let i = 0; i < 4; i++) { const t = mesh(new THREE.TorusGeometry(0.058 - i * 0.003, 0.012, 5, 14), mat('#a3835f', { roughness: 1 })); t.rotation.x = Math.PI / 2; t.position.set(0.002 * i, 0.43 + i * 0.07, 0); g.add(t); }
+  // feuille : grille (t le long de la nervure, v en travers) -> flèche à lobes basaux, ondulée, pliée en V
+  const veins = canvasTexture(128, 256, (c, w, h) => {
+    const gr = c.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#355f4a'); gr.addColorStop(0.5, '#3f6c55'); gr.addColorStop(1, '#355f4a'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    c.strokeStyle = 'rgba(160,200,150,0.55)'; c.lineWidth = 3; c.beginPath(); c.moveTo(w / 2, 0); c.lineTo(w / 2, h); c.stroke();
+    c.lineWidth = 1.4; c.strokeStyle = 'rgba(150,190,145,0.35)';
+    for (let i = 1; i < 14; i++) { const y = i / 14 * h; for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(w / 2, y); c.quadraticCurveTo(w / 2 + sx * w * 0.25, y + 8, w / 2 + sx * w * 0.5, y + 34); c.stroke(); } }
+  });
+  const topM = new THREE.MeshStandardMaterial({ map: veins, roughness: 0.5, metalness: 0, side: THREE.FrontSide });
+  const botM = new THREE.MeshStandardMaterial({ color: '#8aa886', roughness: 0.7, side: THREE.BackSide });
+  const blade = (L, W, droop, seed) => {
+    const NU = 14, NV = 8, pos = [], uv = [], idx = [];
+    for (let i = 0; i <= NU; i++) {
+      const t = i / NU, tt = -0.14 + t * 1.14;
+      const w = W * Math.pow(Math.max(Math.sin(Math.PI * (tt + 0.14) / 1.14), 0), 0.78) * (tt < 0.08 ? 1.06 : 1);
+      for (let j = 0; j <= NV; j++) {
+        const v = (j / NV) * 2 - 1;
+        const x = v * w, zz = tt * L - (tt < 0 ? -v * v * W * 0.0 : 0);
+        const wave = Math.sin(tt * 11 + v * 4 + seed) * 0.012 * Math.abs(v) + Math.sin(tt * 5 + seed) * 0.01;
+        const fold = Math.abs(v) * w * 0.22;
+        const y = fold + wave - droop * Math.max(tt, 0) ** 2 * L - (tt < 0 ? 0.1 * Math.abs(v) * W * (-tt) : 0);
+        pos.push(x, y, zz); uv.push(0.5 + v * 0.5, t);
+      }
+    }
+    for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) { const a = i * (NV + 1) + j, b = a + 1, c = a + NV + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+    const top = new THREE.Mesh(geo, topM), bot = new THREE.Mesh(geo, botM); top.castShadow = bot.castShadow = true; top.receiveShadow = true;
+    return group(top, bot);
+  };
+  const petM = mat('#86ad62', { roughness: 0.55 });
+  // [azimut, hauteur du pétiole, portée, pente du limbe, longueur, largeur, affaissement]
+  const leaves = [[2.9, 1.45, 0.95, -0.28, 1.15, 0.42, 0.3], [0.5, 1.15, 0.7, -0.05, 0.95, 0.38, 0.2], [4.3, 1.0, 0.45, -0.3, 0.85, 0.34, 0.45], [1.6, 0.95, 0.85, -0.55, 0.95, 0.4, 0.4], [3.7, 1.7, 0.4, 0.2, 1.05, 0.4, 0.2], [5.4, 0.8, 0.6, -0.6, 0.7, 0.3, 0.5], [2.2, 0.75, 0.3, -0.3, 0.6, 0.25, 0.4], [5.0, 1.25, 0.55, -0.15, 0.9, 0.36, 0.3]];
+  for (const [az, hh, reach, pitch, L, W, droop] of leaves) {
+    const dx = Math.sin(az), dz = Math.cos(az);
+    const E = [dx * reach, 0.66 + hh, dz * reach];
+    const pts = [[0.01, 0.62, 0], [dx * reach * 0.1, 0.62 + hh * 0.5, dz * reach * 0.1], [dx * reach * 0.5, 0.66 + hh * 0.95, dz * reach * 0.5], E];
+    g.add(tube(pts, 0.018, petM, { segs: 30, radial: 7 }));
+    const b = blade(L, W, droop, r() * 6);
+    b.position.set(...E); b.rotation.order = 'YXZ'; b.rotation.y = az; b.rotation.x = -pitch;
+    g.add(b);
+  }
+  g.userData.top = 1.9;
+  return g;
+}
+
 /* ───────────── TAPIS PERSAN ───────────── */
 export function rug(tex, w = 1.6, l = 2.25) {
   const g = group();
