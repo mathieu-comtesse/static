@@ -93,7 +93,7 @@ export async function createRoom(container, bubbleEl) {
   add('speaker1', sp1, -4.1, -2.0, 0.75, 0, 0.5);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
-  const ek = F.ekstrem(); add('ekstrem', ek, 2.0, -1.55, -0.45, 0, 0.35).scale.setScalar(EKS);
+  const ek = F.ekstrem(); add('ekstrem', ek, 2.3, -0.95, -0.45, 0, 0.35).scale.setScalar(EKS);
   // rituel du thé : tatami, zabutons, ustensiles ; origine = centre du zabuton de l'invité
   const TEA = { x: 0.0, z: 0.25, y: 0.02 };
   const tea = teaSet();
@@ -113,7 +113,7 @@ export async function createRoom(container, bubbleEl) {
   add('arc', arc, 0.85, -2.15, ARC_YAW, 0, 0.6, world, 0);
   mkLamp('arc', arc.userData.glow, new THREE.PointLight('#ffe0a8', 0, 6, 2), '#ffe6b0', '#8a8272');
 
-  if (paintTex) add('painting', F.painting(paintTex), 0.62, -1.98, 0.42, 0, 0.7).children[0].rotation.x = -0.22;
+  if (paintTex) add('painting', F.painting(paintTex), 0.7, -3.5, 0.3, 0, 0.7, world, 0);
   const dra = F.dracaena(); inkify(dra, { skip: (o) => o.material.color.getHexString() !== 'b3a893' }); add('dracaena', dra, 2.85, -2.45, 0.3, 0, 0.65);
   add('speaker2', sp2, 3.6, 0.7, -0.75, 0, 0.75);
   add('shelf1', F.shelf(), 4.6, -1.3, Math.PI / 2, 0, 0.8);
@@ -254,7 +254,7 @@ export async function createRoom(container, bubbleEl) {
   const deskYaw = -Math.PI / 2 + 0.15, ekYaw = -0.45;
   const stations = {
     desk:     { label: 'Au bureau',        clip: 'Driving_Loop',        y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw },
-    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.34, face: 'happy',   pos: seat(2.0, -1.55, ekYaw, -0.05), yaw: ekYaw },
+    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.34, face: 'happy',   pos: seat(2.3, -0.95, ekYaw, -0.05), yaw: ekYaw },
     usm:      { label: 'Un vinyle',        clip: 'Idle_Loop',           y: 0.0, face: 'happy',   ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true },
     cha:      { label: 'Cérémonie du thé', ritual: true, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0 },
     bonsai:   { label: 'J\u2019arrose le bonsaï', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-3.68, 0, 1.78], yaw: 0.98 },

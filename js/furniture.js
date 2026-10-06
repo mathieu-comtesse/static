@@ -368,7 +368,7 @@ export function rug(tex, w = 1.6, l = 2.25) {
   under.rotation.x = -Math.PI / 2; under.position.y = 0.006; under.receiveShadow = true;
   const mid = under.clone(); mid.position.y = 0.012;
   g.add(under, mid, top);
-  g.rotation.y = Math.PI / 2;
+  g.rotation.y = 0;
   const out = group(g);
   return out;
 }
@@ -413,10 +413,24 @@ export function ekstrem() {
 
 /* ───────────── LAMPADAIRE EN ARC ───────────── */
 export function arcLamp() {
+  /* Lampadaire en arc sur socle de marbre blanc veiné (bloc 0,26 × 0,2 × 0,38 m) ; deux tiges chromées parallèles, tête rectangulaire émettrice. */
   const g = group();
   const chrome = mat('#b4b8be', { metalness: 0.9, roughness: 0.28 }), black = mat('#16171a', { roughness: 0.4 });
-  g.add(rbox(0.38, 0.05, 0.3, 0.012, mat('#17181a', { roughness: 0.35 }), 0, 0.025, 0));
-  const path = [[0, 0.05, 0], [0, 1.1, 0], [0.04, 1.75, 0], [0.3, 2.1, 0], [0.8, 2.22, 0], [1.3, 2.2, 0]];
+  const marbleTex = canvasTexture(256, 256, (c, w, h) => {
+    c.fillStyle = '#efede8'; c.fillRect(0, 0, w, h);
+    const r = rng(12);
+    c.lineCap = 'round';
+    for (let i = 0; i < 14; i++) {
+      c.strokeStyle = `rgba(${r() > 0.5 ? '120,124,132' : '160,160,166'},${0.25 + r() * 0.35})`; c.lineWidth = 0.6 + r() * 2;
+      c.beginPath(); let x = r() * w, y = 0; c.moveTo(x, y);
+      while (y < h) { x += (r() - 0.5) * 36; y += 14 + r() * 18; c.lineTo(x, y); }
+      c.stroke();
+    }
+  });
+  const marble = new THREE.MeshStandardMaterial({ map: marbleTex, roughness: 0.25, metalness: 0.05, emissive: '#ffffff', emissiveIntensity: 0.12, emissiveMap: marbleTex });
+  g.add(rbox(0.26, 0.2, 0.38, 0.012, marble, 0, 0.1, 0));
+  g.add(cyl(0.02, 0.022, 0.012, black, 0, 0.206, 0, 14));
+  const path = [[0, 0.2, 0], [0, 1.1, 0], [0.04, 1.75, 0], [0.3, 2.1, 0], [0.8, 2.22, 0], [1.3, 2.2, 0]];
   for (const dz of [-0.016, 0.016]) g.add(tube(path.map((p) => [p[0], p[1], p[2] + dz]), 0.011, chrome, { segs: 70, radial: 10 }));
   const head = group();
   head.add(rbox(0.3, 0.025, 0.16, 0.012, black, 0, 0, 0));
@@ -431,12 +445,14 @@ export function arcLamp() {
 
 /* ───────────── TABLEAU ───────────── */
 export function painting(tex) {
+  /* Tableau accroché dans le vide contre un pan de mur fictif : dalle de plâtre crème flottante, cadre bois, passe-partout. */
   const g = group();
+  const wall = new THREE.MeshStandardMaterial({ color: '#f1ead9', roughness: 0.95, emissive: '#efe8d8', emissiveIntensity: 0.4 });
+  g.add(rbox(1.5, 1.25, 0.06, 0.01, wall, 0, 1.3, -0.04));
   const side = mat('#3b2616', { roughness: 0.7 });
   const front = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
-  const geo = new THREE.BoxGeometry(0.56, 0.642, 0.03);
-  const m = mesh(geo, [side, side, side, side, front, side]);
-  m.position.y = 0.321;
+  const m = mesh(new THREE.BoxGeometry(0.56, 0.642, 0.03), [side, side, side, side, front, side]);
+  m.position.set(0, 1.3, 0.005);
   g.add(m);
   return g;
 }
