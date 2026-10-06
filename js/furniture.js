@@ -276,6 +276,28 @@ export function officeChairFrom(gltf) {
   return g;
 }
 
+/* ───────────── CANAPÉ DS-450 (de Sede), noir ─────────────
+ * Modèle 3D Warehouse « DeSede DS-450 » de Marije H. (≈ 8 k triangles), deux places à dossiers articulés ; le fichier est à une autre échelle,
+ * on le ramène à ≈ 2,2 m de large, cuir noir, piètement en métal sombre. Avant du canapé = +z. */
+export function sofaFrom(gltf, width = 2.2) {
+  const g = group();
+  const root = gltf.scene.clone(true);
+  root.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(root), k = width / (bb.max.x - bb.min.x);
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const src = Array.isArray(o.material) ? o.material[0] : o.material;
+    const metal = (src.metalness || 0) > 0.4 || /chrom|metal|steel|alu/i.test(src.name || '');
+    o.material = new THREE.MeshStandardMaterial({ color: metal ? '#2a2b2f' : '#17181b', roughness: metal ? 0.35 : 0.55, metalness: metal ? 0.8 : 0, side: THREE.DoubleSide });
+    o.castShadow = o.receiveShadow = true;
+  });
+  const inner = group(root);
+  inner.scale.setScalar(k);
+  inner.position.set(-(bb.max.x + bb.min.x) / 2 * k, -bb.min.y * k, -(bb.max.z + bb.min.z) / 2 * k);
+  g.add(inner);
+  return g;
+}
+
 /* ───────────── PLANTES ───────────── */
 function bowl(R, H, color, gravel = '#e5e0d3') {
   const g = group();

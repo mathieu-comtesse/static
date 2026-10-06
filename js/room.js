@@ -45,7 +45,7 @@ export async function createRoom(container, bubbleEl) {
   /* ─── textures ─── */
   const loader = new THREE.TextureLoader();
   const load = (url) => new Promise((res) => loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; res(t); }, undefined, () => res(null)));
-  const [rugTex, paintTex, ekGltf, setuGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
+  const [rugTex, paintTex, ekGltf, setuGltf, sofaGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/ds450.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
 
   /* ─── mobilier ─── */
   const world = group(); scene.add(world);
@@ -94,6 +94,7 @@ export async function createRoom(container, bubbleEl) {
   const sp1 = F.speaker(false, false), sp2 = F.speaker(true, false); inkify(sp1, { skip: (o) => o.material.map }); inkify(sp2, { skip: (o) => o.material.map });
   const alo = F.alocasia(); inkify(alo, { skip: (o) => !(o.material.map && o.material.map.image && o.material.map.image.width === 128 && o.material.side === THREE.DoubleSide) });
   add('alocasia', alo, -2.05, -1.4, 0.6, 0, 0.9).scale.setScalar(0.85);
+  add('sofa', F.sofaFrom(sofaGltf), 0.75, 4.6, 0, 0, 0.95);
   add('speaker1', sp1, -1.85, -2.4, 0.2, 0, 0.5).scale.setScalar(SPK);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
