@@ -175,3 +175,6 @@ export const PRO = [
   "url": "projet-5.html"
  }
 ];
+
+// Morceaux Spotify joués au hasard quand le vinyle tourne (liens ou URI de titres). Vide pour l'instant : le disque tourne sans son.
+export const MUSIC = [];

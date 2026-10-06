@@ -10,6 +10,7 @@ import { createRetroSet } from './retro.js';
 import { createNav } from './nav.js';
 import { createDirector } from './director.js';
 import { createThought } from './thought.js';
+import { createJukebox } from './jukebox.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 
 const DEG = Math.PI / 180;
@@ -105,10 +106,10 @@ export async function createRoom(container, bubbleEl) {
   add('alocasia', alo, -3.1, 3.25, 0.6, 0, 0.9).scale.setScalar(0.9);
   add('sofa', F.sofaFrom(sofaGltf, 2.2, { recline: 0, slide: 0, lateral: 0 }), 0.35, 4.55, Math.PI, 0, 0.95);
   // suspension Falkland, à gauche du canapé, accrochée au plafond
-  const FK = { x: -1.35, z: 4.55, top: 2.55 };
-  const falk = F.falkland(falkGltf);
-  add('falkland', falk, FK.x, FK.z, 0.4, FK.top, 1.0, world, 0);
-  mkLamp('falk', falk.userData.glow, new THREE.PointLight('#ffd9a0', 0, 3.2, 2), '#fff0d0', '#ffffff');
+  const FK = { x: -1.35, z: 4.55, top: 3.15 };
+  const falk = F.falkland(falkGltf, 1.0, 0.45);
+  add('falk', falk, FK.x, FK.z, 0.4, FK.top, 1.0, world, 0);
+  mkLamp('falk', falk.userData.glow, new THREE.PointLight('#ffd9a0', 0, 4.5, 2), '#fff0d0', '#ffffff');
   lamps.falk.light.position.set(FK.x, FK.top - falk.userData.height / 2, FK.z);
   add('speaker1', sp1, -2.6, -2.5, 0.35, 0, 0.5);
 
@@ -409,6 +410,7 @@ export async function createRoom(container, bubbleEl) {
 
   const thoughtEl = bubbleEl;
   const thought = createThought(thoughtEl);
+  const jukebox = createJukebox();
   let thoughtFor = null, music = false, bubbleT = 0, spawned = false;
   const speakers = ['speaker1', 'speaker2'].map((id) => items.find((i) => i.id === id));
   const record = tt.userData.record, arm = tt.userData.arm;
@@ -469,12 +471,13 @@ export async function createRoom(container, bubbleEl) {
     st.enter = () => {
       hero.setBase(st.face); hero.talk(false); hero.can.visible = !!st.can; hero.setOverride(st.ov || null);
       hero.flash('amazed', 0.5); rain.active = !!st.can;
-      if (st.music) music = true;
+      if (st.music) setMusic(true);
       if (st.ritual) { cs.setPanels(1); ritual.start(); }
       if (st.tv) { if (retro.stripOn) retro.powerOn(); else { thoughtFor = null; thought.show(null, 'La multiprise est \u00e9teinte'); thoughtFor = st; } }
       if (afterEnter) { const f = afterEnter; afterEnter = null; setTimeout(f, 450); }
     };
   }
+  function setMusic(on) { music = on; if (on) jukebox.start(); else jukebox.stop(); }
   const goTo = (id, cb) => { afterEnter = cb || null; director.go(stations[id]); };
 
   let appOpen = false;
@@ -502,7 +505,7 @@ export async function createRoom(container, bubbleEl) {
     if (id === 'pc') { if (atDesk()) openPc(); else goTo('desk', openPc); return; }
     if (/^shoji\d$/.test(id)) { cs.togglePanel(+id.slice(5)); return; }
     if (lamps[id]) { lamps[id].on = !lamps[id].on; lamps[id].manual = true; return; }
-    if (id === 'speaker1' || id === 'speaker2') { music = !music; return; }
+    if (id === 'speaker1' || id === 'speaker2') { setMusic(!music); return; }
     if (stations[id]) goTo(id);
   }
   const leave = () => director.stand();
@@ -593,7 +596,7 @@ export async function createRoom(container, bubbleEl) {
       L.k += ((L.on ? 1 : 0) - L.k) * (1 - Math.exp(-dt * 8));
       L.glow.color.set(L.offColor).lerp(new THREE.Color(L.onColor), L.k);
       if (L.glow.update) L.glow.update(L.k);
-      L.light.intensity = L.k * (k === 'arc' ? 14 : k === 'beton' ? 1.6 : 1.1);
+      L.light.intensity = L.k * (k === 'arc' ? 14 : k === 'beton' ? 1.6 : k === 'falk' ? 2.4 : 1.1);
     }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
