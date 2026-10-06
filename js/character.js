@@ -146,7 +146,7 @@ export async function createCharacter({
   const skinShadeMaterials = new Set(['Material #382', 'Material #508']);
   const hairMaterials = new Set(['Material #417']);
   const hairDarkMaterials = new Set(['Material #680', 'Material #1064']);
-  const frameMaterials = new Set(['Material #474','Material #462','Material #1168','Material #464','Material #465','Material #466','Material #467','Material #468']);
+  const frameMaterials = new Set(['Material #474','Material #462','Material #464','Material #465','Material #466','Material #467','Material #468']);
   const applyPalette = (m) => {
     if (!m) return;
     if (skinMaterials.has(m.name)) m.color.copy(paleSkin);
@@ -154,6 +154,7 @@ export async function createCharacter({
     else if (hairMaterials.has(m.name)) m.color.copy(chestnut);
     else if (hairDarkMaterials.has(m.name)) m.color.copy(chestnutDark);
     else if (frameMaterials.has(m.name)) m.color.copy(frameBlack);
+    if (m.name === 'Material #1168') { m.color.set('#eef7ff'); m.transparent = true; m.opacity = 0.1; m.depthWrite = false; m.roughness = 0.05; m.metalness = 0; }          // verres de vue : clairs, pas noirs
     if (m.name === 'Material #1167') { m.color.set('#f7fbff'); m.transparent = true; m.opacity = 0.13; m.depthWrite = false; m.roughness = 0.06; m.metalness = 0; }
     m.needsUpdate = true;
   };
@@ -358,7 +359,7 @@ export async function createCharacter({
     setHoverExpression(on) { portrait.hover = !!on; },
     setAmazed(on) { portrait.amazed = !!on; },
     setLean(v) { lean = v; },
-    setHeadOnly() {},
+    setHeadOnly(on = true) { model.traverse((o) => { if ((o.isMesh || o.isSkinnedMesh) && /^(jacket|arm|shirt|legs|shoes|id|clip|nb_)/.test(o.name)) o.visible = !on; else if (o.isMesh && !o.name && o.parent && (o.parent === bones.foot_l || o.parent === bones.foot_r)) o.visible = !on; }); nbShoes.forEach((s) => { s.visible = !on; }); },
     setHeadScale() {},
     update(dt, t) {
       mixer.update(dt); group.updateMatrixWorld(true);

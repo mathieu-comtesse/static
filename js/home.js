@@ -1,74 +1,50 @@
-import { KEY, MORE, CV } from './projects-data.js';
+import { PRO_CARDS, PERSO_CARDS, CV } from './projects-data.js';
 import { initFlip } from './flip.js';
-import { initReveal } from './theme.js';
+import { initFlipText } from './fliptext.js';
+import { createMarquee } from './marquee.js';
 
+// le site s'adresse à « vous » : on écarte les phrases à la 1re personne des textes repris du CV
+const vous = (t) => String(t || '').split(/(?<=[.!?])\s+/).filter((x) => !/\b(j[’']|je|mon|ma|mes|moi)\b/i.test(x)).join(' ');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-/* Projets : une section par projet, bande de tuiles de part et d'autre d'une carte (titre, gain, bouton), fond coloré qui change à mi-écran */
-function renderProjects(host) {
-  const crop = (img, pos, extra = '') => `style="${extra}background-image:url('${img}');background-position:${pos}"`;
-  const POS = [['0% 0%', '100% 0%'], ['0% 100%', '100% 100%']];
-  host.innerHTML = KEY.map((p, i) => `
-    <section class="project-section" data-bg="${i}" style="--bgl:${p.bg[0]};--bgd:${p.bg[1]}" aria-label="${esc(p.title)}">
-      <div class="project-strip">
-        <div class="tile reveal" ${crop(p.img, POS[0][0], '--enter-x:-120px;--delay:.12s;')}></div>
-        <div class="tile reveal" ${crop(p.img, POS[1][0], '--enter-x:-70px;--delay:.06s;')}></div>
-        <article class="pcard reveal" style="--enter-x:0px">
-          <span class="pnum">${p.n}</span>
-          <h2>${esc(p.title)}<span>${esc(p.sub)}</span></h2>
-          <div class="pimg" ${crop(p.img, '50% 0%')}></div>
-          <strong class="pgain">${esc(p.gain)}</strong>
-          <p class="punit">${esc(p.unit)}</p>
-          <div class="ptags">${p.tags.map((t) => `<i>${esc(t)}</i>`).join('')}</div>
-          <a class="btn dark" href="${CV}${p.url}">Voir le projet</a>
-        </article>
-        <div class="tile reveal" ${crop(p.img, POS[0][1], '--enter-x:70px;--delay:.06s;')}></div>
-        <div class="tile reveal" ${crop(p.img, POS[1][1], '--enter-x:120px;--delay:.12s;')}></div>
-      </div>
-    </section>`).join('');
+function card(p, i, kind) {
+  return `<button class="pc ${kind}" type="button" data-i="${i}" data-k="${kind}" aria-label="${esc(p.title)}">
+    <span class="pc-img${p.pixel ? ' px' : ''}" style="background-image:url('${p.img}')"></span>
+    <span class="pc-body"><b>${esc(p.title)}</b><span class="pc-sub">${esc(p.sub)}</span>
+    ${kind === 'pro' ? `<strong class="pc-gain">${esc(p.gain)}</strong><span class="pc-unit">${esc(p.unit)}</span>` : ''}</span></button>`;
 }
 
-/* Autres projets : on fait défiler sur les côtés, à la molette (horizontale) ou en glissant */
-function renderRail(host) {
-  host.innerHTML = `<header class="section-head reveal"><span>Tous les projets</span><p>Faites défiler sur les côtés</p></header>
-    <div class="rail" tabindex="0" aria-label="Autres projets, défilement horizontal">${MORE.map((m, i) => `
-      <a class="rcard reveal" style="--enter-x:80px;--delay:${Math.min(i, 5) * 0.05}s" href="${CV}${m.url}"><div class="rimg${m.pixel ? ' px' : ''}" style="background-image:url('${m.img}')"></div><b>${esc(m.title)}</b><span>${esc(m.sub)}</span></a>`).join('')}</div>`;
-  const rail = host.querySelector('.rail');
-  let down = null;
-  rail.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') return; down = { x: e.clientX, s: rail.scrollLeft, moved: 0 }; });
-  window.addEventListener('pointermove', (e) => { if (!down) return; const dx = e.clientX - down.x; down.moved = Math.max(down.moved, Math.abs(dx)); if (down.moved > 4) { rail.classList.add('drag'); rail.scrollLeft = down.s - dx; } });
-  window.addEventListener('pointerup', () => { down = null; setTimeout(() => rail.classList.remove('drag'), 0); });
-  rail.addEventListener('click', (e) => { if (rail.classList.contains('drag')) e.preventDefault(); }, true);
-  // la molette verticale fait défiler la bande tant qu'elle n'est pas en butée, puis rend la main à la page
-  rail.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-    const max = rail.scrollWidth - rail.clientWidth, next = rail.scrollLeft + e.deltaY;
-    if ((e.deltaY > 0 && rail.scrollLeft < max - 1) || (e.deltaY < 0 && rail.scrollLeft > 1)) { e.preventDefault(); rail.scrollLeft = Math.max(0, Math.min(max, next)); }
-  }, { passive: false });
-}
-
-/* fond : la couleur du projet prend le relais au milieu de l'écran ; la pièce 3D baisse sa caméra quand l'en-tête s'éloigne */
-function initScroll(getRoom) {
-  const sections = () => [...document.querySelectorAll('.project-section')];
-  let queued = false;
-  const update = () => {
-    queued = false;
-    let active = null;
-    for (const s of sections()) { if (s.getBoundingClientRect().top <= innerHeight * 0.5) active = s; else break; }
-    const dark = document.documentElement.dataset.theme === 'dark';
-    document.body.style.setProperty('--project-background', active ? (dark ? active.style.getPropertyValue('--bgd') : active.style.getPropertyValue('--bgl')) : 'var(--bg)');
-    const host = document.getElementById('room');
-    const room = getRoom(); if (host && room) { const r = host.getBoundingClientRect(); const p = Math.max(0, Math.min(1, -r.top / Math.max(1, r.height * 0.85))); room.setScroll && room.setScroll(1 - (1 - p) * (1 - p)); }
+/* fiche synthétique d'un projet : image, gain, trois lignes ; Échap ou clic à côté pour fermer */
+function initDetail() {
+  const ov = document.createElement('div'); ov.className = 'detail'; ov.hidden = true;
+  ov.innerHTML = '<div class="detail-card" role="dialog" aria-modal="true"><button class="detail-x" type="button" aria-label="Fermer">×</button><div class="detail-img"></div><div class="detail-txt"></div></div>';
+  document.body.append(ov);
+  const img = ov.querySelector('.detail-img'), txt = ov.querySelector('.detail-txt');
+  const close = () => { ov.classList.remove('on'); setTimeout(() => { ov.hidden = true; }, 220); document.body.classList.remove('lock'); };
+  ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('.detail-x')) close(); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && !ov.hidden) close(); });
+  return (p, kind) => {
+    img.style.backgroundImage = `url('${p.img}')`; img.classList.toggle('px', !!p.pixel);
+    if (kind === 'pro') {
+      const d = p.pro;
+      txt.innerHTML = `<p class="k">Projet professionnel</p><h3>${esc(p.title)}</h3><p class="s">${esc(p.sub)}</p>
+        <div class="g"><strong>${esc(p.gain)}</strong><span>${esc(p.unit)}</span></div>
+        ${d && vous(d.lead) ? `<p>${esc(vous(d.lead))}</p>` : ''}${d && vous(d.gain) ? `<p><b>Gain.</b> ${esc(vous(d.gain))}</p>` : ''}${d && vous(d.team) ? `<p><b>Pour l’équipe.</b> ${esc(vous(d.team))}</p>` : ''}`;
+    } else {
+      txt.innerHTML = `<p class="k">Projet personnel · ${esc(p.sub)}</p><h3>${esc(p.title)}</h3><p>${esc(p.desc)}</p><p><a class="btn dark" href="${CV}${p.url}" target="_blank" rel="noopener">Jouer</a></p>`;
+    }
+    ov.hidden = false; requestAnimationFrame(() => ov.classList.add('on')); document.body.classList.add('lock');
+    ov.querySelector('.detail-x').focus();
   };
-  const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
-  addEventListener('scroll', queue, { passive: true }); addEventListener('resize', queue);
-  new MutationObserver(queue).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  update();
 }
 
-export function initHome(getRoom) {
-  renderProjects(document.getElementById('projects'));
-  renderRail(document.getElementById('more'));
-  initFlip(); initReveal();
-  initScroll(getRoom);
+export function initHome() {
+  initFlipText(); initFlip();
+  const open = initDetail();
+  for (const [id, list, kind, dir] of [['mq-pro', PRO_CARDS, 'pro', 1], ['mq-perso', PERSO_CARDS, 'perso', -1]]) {
+    const root = document.getElementById(id); if (!root) continue;
+    root.innerHTML = `<div class="mq-track">${list.map((p, i) => card(p, i, kind)).join('')}</div>`;
+    root.addEventListener('click', (e) => { const b = e.target.closest('.pc'); if (b) open(list[+b.dataset.i], kind); });
+    createMarquee(root, { speed: kind === 'pro' ? 0.7 : 0.55, direction: dir });
+  }
 }

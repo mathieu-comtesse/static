@@ -17,12 +17,12 @@ export async function initPortrait(host) {
   hero.group.rotation.y = 0.18;
   scene.add(hero.group);
   hero.play('Idle_Loop', { fade: 0.01 }); hero.setBase('happy');
-  hero.setShoes(true);
+  hero.setHeadOnly(true);                 // la tête seule, comme demandé
   // cadrage : buste, tête au tiers supérieur
   hero.update(0.5, 0.5);
   const head = hero.wp('Head');
-  camera.position.set(0, head.y - 0.06, 2.7);
-  camera.lookAt(0, head.y - 0.13, 0);
+  camera.position.set(0, head.y - 0.02, 1.9);
+  camera.lookAt(0, head.y - 0.02, 0);
 
   const resize = () => { const w = host.clientWidth || 1, h = host.clientHeight || 1; renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
   new ResizeObserver(resize).observe(host); resize();
