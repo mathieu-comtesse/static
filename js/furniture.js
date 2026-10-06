@@ -318,7 +318,7 @@ function splitComponents(geo) {
  * (dossiers, assises) pour reproduire la fonction du DS-450 : dossiers basculés vers l'arrière, assise de gauche tirée vers l'avant en méridienne.
  * `opts.recline` en radians, `opts.slide` = coulissement de l'assise (unités du fichier). Avant du canapé = +z. */
 export function sofaFrom(gltf, width = 2.2, opts = {}) {
-  const { recline = 0.75, slide = 52, slideSide = 1 } = opts;
+  const { recline = 0.4, slide = 52, slideSide = 1 } = opts;
   const g = group();
   const root = gltf.scene.clone(true);
   root.updateMatrixWorld(true);
