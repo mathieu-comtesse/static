@@ -1,7 +1,7 @@
 import { THREE, group, mat, inkify, ink, contactShadow } from './kit.js';
 import * as F from './furniture.js';
 import { createCharacter } from './character.js';
-import { teaSet, chabana, shoePair, updateSteam } from './tea.js';
+import { teaSet, shoePair, updateSteam } from './tea.js';
 import { createRitual } from './ritual.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 
@@ -68,7 +68,7 @@ export async function createRoom(container, bubbleEl) {
   const lamps = {};
   const mkLamp = (key, glowMat, light, onColor, offColor) => { lamps[key] = { glow: glowMat, light, on: false, onColor, offColor, k: 0 }; glowMat.color.set(offColor); };
 
-  if (rugTex) add('rug', F.rug(rugTex, 2.4, 3.3), 0.0, 1.0, 0, 0, 0.0, world, 0);
+  if (rugTex) add('rug', F.rug(rugTex, 3.1, 4.3), 0.0, 1.1, 0, 0, 0.0, world, 0);
 
   // bureau + objets
   const deskSet = group();
@@ -89,22 +89,22 @@ export async function createRoom(container, bubbleEl) {
 
   const bench = F.bench(); add('bench', bench, -3.1, 2.15, 0, 0, 0.3);
   const bonsai = F.bonsai(); inkify(bonsai, { skip: (o) => !['9b9a92'].includes(o.material.color.getHexString()) }); add('bonsai', bonsai, -3.1, 2.15, 0.5, 0.28, 0.42);
-  const sp1 = F.speaker(), sp2 = F.speaker(); inkify(sp1); inkify(sp2);
-  add('speaker1', sp1, -3.9, -1.1, 0.6, 0, 0.5);
+  const sp1 = F.speaker(false), sp2 = F.speaker(true); inkify(sp1, { skip: (o) => o.material.map }); inkify(sp2, { skip: (o) => o.material.map });
+  add('speaker1', sp1, -4.1, -2.0, 0.75, 0, 0.5);
 
-  const ek = F.ekstrem(); add('ekstrem', ek, 1.95, -1.5, -0.45, 0, 0.35);
+  const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
+  const ek = F.ekstrem(); add('ekstrem', ek, 2.0, -1.55, -0.45, 0, 0.35).scale.setScalar(EKS);
   // rituel du thé : tatami, zabutons, ustensiles ; origine = centre du zabuton de l'invité
   const TEA = { x: 0.0, z: 0.25, y: 0.02 };
   const tea = teaSet();
   add('cha', tea, TEA.x, TEA.z, 0, TEA.y, 0.5, world, 0);
   const shoes = shoePair(); inkify(shoes); add('shoes', shoes, TEA.x, TEA.z - 0.42, 0, TEA.y, 0.6, world, 0);
   const stool = F.stool(); add('stool', stool, TEA.x, TEA.z + 1.95, 0.2, TEA.y, 0.55);
-  const flower = chabana(); flower.position.y = 0.38; stool.add(flower);
 
   const usmSet = group();
   usmSet.add(F.usm());
   const tt = F.turntable(); inkify(tt, { skip: (o) => o.material.color.getHexString() !== '3f2d22' }); tt.position.set(-0.37, 0.734, 0); usmSet.add(tt);
-  const cl = F.concreteLamp(); inkify(cl); add('beton', cl, 0.4, 0, 0, 0.734, 0, usmSet);
+  const cl = F.concreteLamp(); inkify(cl, { skip: (o) => o.material.vertexColors }); cl.scale.setScalar(0.6); add('beton', cl, 0.44, 0.0, 0, 0.734, 0, usmSet);
   add('usm', usmSet, -0.7, -2.4, 0, 0, 0.45);
   mkLamp('beton', cl.userData.glow, new THREE.PointLight('#ffe9c4', 0, 2.5, 2), '#fff3d6', '#8a8780');
 
@@ -115,9 +115,8 @@ export async function createRoom(container, bubbleEl) {
 
   if (paintTex) add('painting', F.painting(paintTex), 0.62, -1.98, 0.42, 0, 0.7).children[0].rotation.x = -0.22;
   const dra = F.dracaena(); inkify(dra, { skip: (o) => o.material.color.getHexString() !== 'b3a893' }); add('dracaena', dra, 2.85, -2.45, 0.3, 0, 0.65);
-  add('speaker2', sp2, 3.5, 0.55, -0.7, 0, 0.75);
-  add('shelf1', F.shelf(3), 4.55, -1.75, Math.PI / 2, 0, 0.8);
-  add('shelf2', F.shelf(8), 4.55, -0.87, Math.PI / 2, 0, 0.85);
+  add('speaker2', sp2, 3.6, 0.7, -0.75, 0, 0.75);
+  add('shelf1', F.shelf(), 4.6, -1.3, Math.PI / 2, 0, 0.8);
 
   // positions des sources lumineuses (repère monde)
   const yawed = (v, yaw, ox, oz) => { v = v.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw); return [ox + v.x, v.y, oz + v.z]; };
@@ -255,7 +254,7 @@ export async function createRoom(container, bubbleEl) {
   const deskYaw = -Math.PI / 2 + 0.15, ekYaw = -0.45;
   const stations = {
     desk:     { label: 'Au bureau',        clip: 'Driving_Loop',        y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw },
-    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.2, face: 'happy',   pos: seat(1.95, -1.5, ekYaw, -0.1), yaw: ekYaw },
+    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.34, face: 'happy',   pos: seat(2.0, -1.55, ekYaw, -0.05), yaw: ekYaw },
     usm:      { label: 'Un vinyle',        clip: 'Idle_Loop',           y: 0.0, face: 'happy',   ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true },
     cha:      { label: 'Cérémonie du thé', ritual: true, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0 },
     bonsai:   { label: 'J\u2019arrose le bonsaï', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-3.68, 0, 1.78], yaw: 0.98 },

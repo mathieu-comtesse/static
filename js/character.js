@@ -9,43 +9,42 @@ import { GLTFLoader } from 'three/addons/GLTFLoader.js';
  *   Squelette : os du rig de ton dépôt (cv-mathieu_comtesse), longueurs ajustées aux proportions du modèle ; animations : anims.glb. */
 
 const C = {
-  skin: '#e7bd9c', skinShade: '#c99a7a', hairA: '#b3935f', hairB: '#8d6e46', hairC: '#c9ab76', hairD: '#9c7a4e', beard: '#bd7a47', beardD: '#a2612f',
+  skin: '#a96a24', skinShade: '#7d4a18', hair: '#0b080b', hairB: '#17121a', beard: '#0d0a0d', brow: '#0a070a',
   tee: '#fcfae2', jacket: '#8aa5d1', jacketD: '#3d5bb0', lining: '#27337a', pants: '#1c2542', pantsL: '#27345d',
   red: '#8f1d0a', redD: '#4a0e05', sole: '#d9d19a', heel: '#4a5348', tongue: '#ded8a2', badge: '#101114', lanyard: '#a5c82a',
+  frame: '#a29d95', lens: '#8aa5d1', eye: '#35232f', mouth: '#c4703f',
 };
 
-/* ─── plaque d'expression : décalcomanies en pixels (comme les « face_*.png » du modèle) ─── */
-const FW = 40, FH = 42;
+/* ─── plaque d'expression : yeux rectangulaires sombres + bouche cuivrée, comme les « face_*.png » du modèle ─── */
+const FW = 48, FH = 52;
 function faceTexture(kind) {
   const c = document.createElement('canvas'); c.width = FW; c.height = FH;
   const g = c.getContext('2d');
   const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
-  const r = rng(3);
   px(0, 0, FW, FH, C.skin);
-  for (let y = 21; y < FH; y++) for (let x = 0; x < FW; x++) {
-    const side = x < 5 || x > FW - 6, low = y > 26;
-    if ((side && y > 18) || low) px(x, y, 1, 1, r() > 0.8 ? '#c98b55' : r() > 0.72 ? C.beardD : C.beard);
+  // barbe noire : joues, menton, moustache ; la bouche reste dégagée
+  for (let y = 24; y < FH; y++) for (let x = 0; x < FW; x++) {
+    const side = x < 6 || x > FW - 7, low = y > 42, must = y >= 30 && y < 34 && x > 12 && x < FW - 13;
+    if (side && y > 34 || low || must) px(x, y, 1, 1, C.beard);
   }
-  px(10, 24, 20, 3, C.beardD);
-  px(17, 18, 6, 6, '#d6a283'); px(18, 24, 4, 1, '#d6a283');
-  const big = kind === 'amazed' ? 2 : 0;
-  const eye = (cx, closed) => {
-    if (closed) { px(cx - 4, 16, 9, 1, '#3d2c1c'); return; }
-    px(cx - 4, 13 - big, 9, 7 + big * 2, '#f7f4ee');
-    px(cx - 2, 14 - big, 5, 5 + big, '#7fa0b4'); px(cx - 1, 15 - big, 3, 3 + big, '#15181c'); px(cx, 14 - big, 1, 1, '#ffffff');
+  px(15, 34, 18, 3, C.skin); px(14, 36, 20, 1, C.skin);                // contour de la bouche
+  px(21, 26, 6, 6, C.skinShade);                                        // nez
+  const eyeY = 16, ex = [13, 33];
+  const eyes = {
+    blink: () => ex.forEach((x) => px(x - 3, eyeY + 4, 7, 1.5, C.eye)),
+    amazed: () => ex.forEach((x) => { px(x - 2, eyeY + 1, 5, 5, C.eye); }),
+    happy: () => ex.forEach((x) => { px(x - 3, eyeY + 4, 7, 1.5, C.eye); px(x - 4, eyeY + 5, 2, 1, C.eye); px(x + 3, eyeY + 5, 2, 1, C.eye); }),
   };
-  if (kind === 'happy') { for (const cx of [10, 29]) { px(cx - 3, 17, 7, 1, '#3d2c1c'); px(cx - 4, 18, 2, 1, '#3d2c1c'); px(cx + 3, 18, 2, 1, '#3d2c1c'); } }
-  else { const closed = kind === 'blink' || kind === 'sip'; eye(10, closed); eye(29, closed); }
-  const brow = (x0, tilt) => { for (let i = 0; i < 9; i++) px(x0 + i, 10 + tilt(i) - (kind === 'amazed' ? 2 : 0), 1, 2, '#7a5a36'); };
-  brow(6, (i) => (kind === 'happy' ? 0 : i < 4 ? 1 : 0)); brow(25, (i) => (kind === 'happy' ? 0 : i > 4 ? 1 : 0));
+  (eyes[kind] || (() => ex.forEach((x) => px(x - 2, eyeY, 4, 9, C.eye))))();
   const mouth = {
-    neutral: () => px(15, 31, 10, 2, '#7a3b32'), blink: () => px(15, 31, 10, 2, '#7a3b32'),
-    happy: () => { px(13, 30, 14, 4, '#7a3b32'); px(14, 30, 12, 1, '#fbf6ee'); },
-    amazed: () => { px(16, 29, 8, 7, '#5a2a26'); px(17, 30, 6, 5, '#7a3b32'); },
-    talkA: () => { px(14, 30, 12, 5, '#5a2a26'); px(15, 31, 10, 1, '#fbf6ee'); },
-    talkO: () => { px(17, 30, 6, 5, '#5a2a26'); },
-    sip: () => { px(17, 30, 6, 4, '#7a3b32'); px(16, 31, 8, 2, '#7a3b32'); },
-  }[kind] || (() => {});
+    neutral: () => { px(18, 35, 12, 2, C.mouth); },
+    blink: () => { px(18, 35, 12, 2, C.mouth); },
+    happy: () => { px(16, 34, 16, 5, '#f26a45'); px(17, 34, 14, 1.5, '#fbf6ee'); px(19, 37, 10, 2, '#f19a8a'); },
+    amazed: () => { px(19, 34, 10, 6, '#f26a45'); px(21, 35, 6, 1.5, '#fbf6ee'); },
+    talkA: () => { px(16, 34, 16, 7, '#8f1c05'); px(17, 34, 14, 1.5, '#fbf6ee'); px(20, 38, 8, 2, '#f08a78'); },
+    talkO: () => { px(20, 34, 8, 7, '#8f1c05'); px(21, 34, 6, 1.5, '#fbf6ee'); },
+    sip: () => { px(21, 35, 6, 4, C.mouth); px(20, 36, 8, 2, C.mouth); },
+  }[kind] || (() => px(18, 35, 12, 2, C.mouth));
   mouth();
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
@@ -116,40 +115,50 @@ export async function createCharacter({ rigUrl = 'assets/rig.json', animsUrl = '
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
     const key = o.mesh || color;
-    if (!buckets.has(key)) buckets.set(key, { color, list: [], name: key });
+    if (!buckets.has(key)) buckets.set(key, { color, list: [], name: key, glass: !!o.glass });
     buckets.get(key).list.push(g);
   };
   const rr = rng(8), jit = (a) => (rr() - 0.5) * a;
 
-  /* ── tête (≈ 28 % de la hauteur) : crâne, mâchoire, oreilles, cou ── */
-  part('Head', cbox(0.38, 0.2, 0.34, 0.04), 0, 1.3, 0.05, C.skin, { mesh: 'skin' });
-  part('Head', frus(0.38, 0.28, 0.13, 0.34, 0.28), 0, 1.165, 0.07, C.skin, { mesh: 'skin' });
+  /* ── tête : crâne carré, mâchoire en pyramide tronquée, oreilles, nez, cou ── */
+  part('Head', cbox(0.4, 0.22, 0.36, 0.05), 0, 1.285, 0.04, C.skin, { mesh: 'skin' });
+  part('Head', frus(0.38, 0.28, 0.14, 0.33, 0.27), 0, 1.15, 0.045, C.skin, { mesh: 'skin' });
+  part('Head', cbox(0.04, 0.045, 0.04, 0.008), 0, 1.212, 0.235, C.skinShade, { mesh: 'skinShade' });                // nez
   for (const s of [-1, 1]) {
-    part('Head', cbox(0.04, 0.085, 0.065, 0.012), s * 0.205, 1.25, 0.02, C.skin, { mesh: 'skin' });
-    part('Head', cbox(0.02, 0.045, 0.035, 0.006), s * 0.212, 1.25, 0.03, C.skinShade, { mesh: 'skinShade' });
+    part('Head', cbox(0.04, 0.09, 0.07, 0.012), s * 0.215, 1.24, 0.02, C.skin, { mesh: 'skin' });
+    part('Head', cbox(0.02, 0.05, 0.04, 0.006), s * 0.222, 1.24, 0.03, C.skinShade, { mesh: 'skinShade' });
   }
-  part('neck_01', cbox(0.13, 0.1, 0.12, 0.02), 0, 1.075, -0.01, C.skinShade, { mesh: 'skinShade' });
+  part('neck_01', cbox(0.14, 0.1, 0.13, 0.02), 0, 1.075, -0.01, C.skinShade, { mesh: 'skinShade' });
 
-  /* ── barbe rousse : menton, favoris, moustache (le reste est dessiné sur la plaque) ── */
-  part('Head', cbox(0.27, 0.075, 0.1, 0.025), 0, 1.13, 0.19, C.beard, { mesh: 'beard' });
+  /* ── barbe noire : sous le menton et sur les mâchoires (le reste est sur la plaque) ── */
+  part('Head', frus(0.3, 0.26, 0.07, 0.12, 0.1), 0, 1.088, 0.14, C.beard, { mesh: 'beard' });
+  for (const s of [-1, 1]) part('Head', cbox(0.06, 0.16, 0.25, 0.02), s * 0.205, 1.14, 0.06, C.beard, { mesh: 'beard' });
+
+  /* ── cheveux noirs en grandes mèches pointues (≈ 28 facettes) : couronne, nuque, côtés, frange ── */
+  const lock = (x, y, z, w, h, d, rot, key = 'hair') => part('Head', spike(w, h, d), x, y, z, key === 'hair' ? C.hair : C.hairB, { mesh: key, rot });
+  part('Head', cbox(0.43, 0.07, 0.39, 0.04), 0, 1.415, -0.005, C.hair, { mesh: 'hair' });
+  for (let i = 0; i < 9; i++) {                                                       // couronne
+    const a = (i / 9) * Math.PI * 2, r = i % 2 ? 0.14 : 0.07;
+    lock(Math.cos(a) * r, 1.46 + (i % 3) * 0.015, Math.sin(a) * r * 0.9 + 0.0, 0.17, 0.15 + (i % 3) * 0.04, 0.17, [Math.sin(a) * 0.35, a, -Math.cos(a) * 0.35], i % 2 ? 'hair' : 'hairB');
+  }
+  for (let i = 0; i < 6; i++) lock(-0.19 + i * 0.076, 1.32 - (i % 2) * 0.03, -0.205, 0.15, 0.2, 0.12, [-2.3, 0, 0], i % 2 ? 'hair' : 'hairB');       // nuque
   for (const s of [-1, 1]) {
-    part('Head', cbox(0.045, 0.15, 0.22, 0.015), s * 0.185, 1.2, 0.07, C.beard, { mesh: 'beard' });
-    part('Head', cbox(0.045, 0.08, 0.09, 0.012), s * 0.17, 1.13, 0.16, C.beardD, { mesh: 'beardD' });
+    lock(s * 0.225, 1.38, 0.0, 0.14, 0.2, 0.2, [0, 0, -s * 1.9]);                                   // côtés
+    lock(s * 0.225, 1.28, -0.08, 0.12, 0.17, 0.15, [0, 0, -s * 2.4], 'hairB');
+    lock(s * 0.2, 1.38, 0.2, 0.1, 0.17, 0.1, [Math.PI + 0.35, 0, s * 0.25]);
   }
-  part('Head', frus(0.15, 0.2, 0.03, 0.04, 0.05), 0, 1.222, 0.232, C.beardD, { mesh: 'beardD' });
+  for (let i = 0; i < 5; i++) lock(-0.14 + i * 0.07, 1.42 - Math.abs(i - 2) * 0.012, 0.2, 0.1, 0.13, 0.1, [Math.PI + 0.4, 0, (i - 2) * 0.12], i % 2 ? 'hair' : 'hairB');   // frange
+  for (const s of [-1, 1]) part('Head', cbox(0.15, 0.017, 0.02, 0.005), s * 0.1, 1.325, 0.222, C.brow, { mesh: 'brow' });   // sourcils
 
-  /* ── cheveux bouclés, facettés et groupés comme les mèches du modèle : calotte, frange en pointes, nuque, côtés ── */
-  const hair = [C.hairA, C.hairB, C.hairC, C.hairD];
-  const curl = (x, y, z, rx, ry = rx, rz = rx) => { const ci = (rr() * 4) | 0; part('Head', facet(rx, ry, rz), x, y, z, hair[ci], { mesh: 'hair' + ci, rot: [jit(1.2), jit(2.4), jit(1.2)] }); };
-  for (let ix = -2; ix <= 2; ix++) for (let iz = -2; iz <= 2; iz++) { if (Math.abs(ix) === 2 && Math.abs(iz) === 2) continue; curl(ix * 0.085 + jit(0.03), 1.44 + jit(0.04) - (Math.abs(ix) + Math.abs(iz)) * 0.012, iz * 0.085 + 0.04 + jit(0.03), 0.085 + rr() * 0.025, 0.07 + rr() * 0.02, 0.085 + rr() * 0.025); }
-  for (let i = 0; i < 9; i++) curl(-0.18 + i * 0.045 + jit(0.02), 1.27 + jit(0.08), -0.14 - rr() * 0.03, 0.07 + rr() * 0.025, 0.09 + rr() * 0.03, 0.07);
-  for (let i = 0; i < 6; i++) curl(-0.14 + i * 0.056, 1.15 + jit(0.03), -0.13 - rr() * 0.03, 0.06 + rr() * 0.02);
-  for (const s of [-1, 1]) for (let i = 0; i < 4; i++) curl(s * (0.2 + rr() * 0.02), 1.38 - i * 0.045, -0.02 - i * 0.045, 0.07 + rr() * 0.02, 0.06 + rr() * 0.03, 0.08);
-  for (let i = 0; i < 7; i++) {                                   // frange : pointes qui retombent sur le front
-    const x = (i - 3) * 0.052 + jit(0.01);
-    part('Head', spike(0.075, 0.13 + rr() * 0.04, 0.07), x, 1.375 - Math.abs(i - 3) * 0.006, 0.215, hair[(rr() * 4) | 0], { mesh: 'hair' + ((rr() * 4) | 0), rot: [Math.PI + 0.25, jit(0.5), jit(0.4)] });
+  /* ── lunettes octogonales à monture claire et verres bleutés ── */
+  const octRing = (R, r, depth) => { const sh = new THREE.Shape(), ho = new THREE.Path(); for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2; (i ? sh.lineTo : sh.moveTo).call(sh, Math.cos(a) * R, Math.sin(a) * R); (i ? ho.lineTo : ho.moveTo).call(ho, Math.cos(a) * r, Math.sin(a) * r); } sh.closePath(); ho.closePath(); sh.holes.push(ho); return new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false }); };
+  const octDisc = (R, depth) => { const sh = new THREE.Shape(); for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2; (i ? sh.lineTo : sh.moveTo).call(sh, Math.cos(a) * R, Math.sin(a) * R); } sh.closePath(); return new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false }); };
+  for (const s of [-1, 1]) {
+    part('Head', octRing(0.07, 0.054, 0.02), s * 0.084, 1.246, 0.222, C.frame, { mesh: 'frame' });
+    part('Head', octDisc(0.056, 0.004), s * 0.084, 1.246, 0.232, '#aac2e8', { mesh: 'lens', glass: true });
+    part('Head', cbox(0.02, 0.014, 0.17, 0.004), s * 0.158, 1.262, 0.13, C.frame, { mesh: 'frame' });          // branches
   }
-  for (const s of [-1, 1]) part('Head', spike(0.07, 0.12, 0.07), s * 0.17, 1.38, 0.19, C.hairB, { mesh: 'hair1', rot: [Math.PI + 0.2, 0, s * -0.3] });
+  part('Head', cbox(0.03, 0.012, 0.012, 0.003), 0, 1.262, 0.232, C.frame, { mesh: 'frame' });                   // pont
 
   /* ── buste : tee-shirt crème, veste ouverte (dos, côtés, pans, empiècement, col) ── */
   part('spine_02', cbox(0.34, 0.4, 0.27, 0.03), 0, 0.915, -0.03, C.tee, { mesh: 'shirt' });
@@ -208,15 +217,15 @@ export async function createCharacter({ rigUrl = 'assets/rig.json', animsUrl = '
   const meshes = [], byName = {};
   for (const [, b] of buckets) {
     const geo = mergeGeometries(b.list, false);
-    const sm = new THREE.SkinnedMesh(geo, new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.85, flatShading: true }));
-    sm.name = b.name; sm.castShadow = sm.receiveShadow = true; sm.frustumCulled = false;
+    const sm = new THREE.SkinnedMesh(geo, b.glass ? new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.15, transparent: true, opacity: 0.28, depthWrite: false, flatShading: true }) : new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.85, flatShading: true }));
+    sm.name = b.name; sm.castShadow = sm.receiveShadow = !b.glass; sm.frustumCulled = false;
     group.add(sm); meshes.push(sm); byName[b.name] = sm;
   }
   const shoeNames = ['sole', 'redD', 'red', 'tongue', 'heel'], tabi = byName.tabi;
   tabi.visible = false;
   // plaque d'expression : devant le visage
   const faces = {}; for (const k of ['neutral', 'blink', 'happy', 'amazed', 'talkA', 'talkO', 'sip']) faces[k] = faceTexture(k);
-  const plateGeo = new THREE.PlaneGeometry(0.29, 0.3); plateGeo.translate(0, 1.255, 0.2225);
+  const plateGeo = new THREE.PlaneGeometry(0.27, 0.268); plateGeo.translate(0, 1.232, 0.2215);
   { const n = plateGeo.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4); for (let i = 0; i < n; i++) { si[i * 4] = idx.Head; sw[i * 4] = 1; } plateGeo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); plateGeo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); }
   const plateMat = new THREE.MeshStandardMaterial({ map: faces.neutral, roughness: 0.9 });
   const plate = new THREE.SkinnedMesh(plateGeo, plateMat); plate.name = 'expression_plate'; plate.frustumCulled = false; plate.receiveShadow = true;

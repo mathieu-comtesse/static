@@ -77,53 +77,73 @@ export function portraitMonitor() {
   return g;
 }
 
-/* ZSA Moonlander : deux moitiés inclinées sur plaque, pouce rouge */
+/* ZSA Moonlander : deux moitiés indépendantes, 6 colonnes décalées × 4 rangées + rangée basse, grappe de pouce (4 touches + 2 en bas),
+ * plaque noire inclinée sur pieds de tenting argentés, touches creuses à légende claire, câble TRRS entre les deux moitiés. */
 export function moonlander() {
   const g = group();
-  const black = mat('#18191b', { roughness: 0.5 }), keyM = mat('#2b2c30', { roughness: 0.6 }), red = mat('#e0212a', { roughness: 0.4 });
-  const silver = mat('#c9ccd0', { metalness: 0.7, roughness: 0.35 });
-  const keyGeo = new THREE.BoxGeometry(0.0185, 0.013, 0.0185);
-  const stag = [0.014, 0.01, 0.0, 0.006, 0.012, 0.018];
-  const halves = [];
+  const black = mat('#17181a', { roughness: 0.5 }), silver = mat('#c4c8cd', { metalness: 0.7, roughness: 0.35 });
+  const capGeo = (() => { const gg = new THREE.CylinderGeometry(0.5, 0.5, 1, 4, 1); gg.rotateY(Math.PI / 4); const p = gg.attributes.position; for (let i = 0; i < p.count; i++) { const top = p.getY(i) > 0, k = top ? 0.7 : 1; p.setX(i, p.getX(i) * Math.SQRT2 * k); p.setZ(i, p.getZ(i) * Math.SQRT2 * k); } gg.computeVertexNormals(); gg.scale(0.0185, 0.011, 0.0185); gg.translate(0, 0.0055, 0); return gg; })();
+  const legend = canvasTexture(64, 64, (c, w, h) => { c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h); c.fillStyle = '#17181a'; c.fillRect(24, 16, 16, 32); c.fillRect(16, 24, 32, 6); });
+  const keyM = new THREE.MeshStandardMaterial({ color: '#2b2d33', roughness: 0.65 });
+  const keyAlt = new THREE.MeshStandardMaterial({ color: '#3a3d45', roughness: 0.65 });
+  const keyRed = new THREE.MeshStandardMaterial({ color: '#d4252d', roughness: 0.5 });
+  const stag = [0.013, 0.008, 0.0, 0.006, 0.012, 0.017];
   for (const s of [-1, 1]) {
     const half = group();
-    half.add(rbox(0.17, 0.02, 0.22, 0.008, black, 0, 0.0, 0.01));
-    const keys = new THREE.InstancedMesh(keyGeo, keyM, 5 * 6 + 3);
-    keys.castShadow = true;
-    let n = 0; const m4 = new THREE.Matrix4();
-    for (let c = 0; c < 6; c++) for (let r = 0; r < 5; r++) {
-      m4.makeTranslation(-s * (c - 2.5) * 0.0235 + 0, 0.015, -0.08 + r * 0.0235 + stag[c]);
-      keys.setMatrixAt(n++, m4);
+    // plaque : dalle principale + pan de pouce
+    half.add(rbox(0.158, 0.014, 0.205, 0.006, black, 0, 0.007, 0.0));
+    half.add(rbox(0.07, 0.014, 0.09, 0.006, black, -s * 0.045, 0.007, 0.13));
+    const keysA = new THREE.InstancedMesh(capGeo, keyM, 6 * 4 + 6), keysB = new THREE.InstancedMesh(capGeo, keyAlt, 16);
+    keysA.castShadow = keysB.castShadow = true;
+    const m4 = new THREE.Matrix4(); let na = 0, nb = 0;
+    for (let c = 0; c < 6; c++) for (let r = 0; r < 4; r++) {
+      const x = -s * (c - 2.5) * 0.0235, z = -0.075 + r * 0.0235 + stag[c] - 0.0;
+      m4.makeTranslation(x, 0.014, z); (c === 0 || c === 5 ? keysB : keysA).setMatrixAt(c === 0 || c === 5 ? nb++ : na++, m4);
     }
-    for (let i = 0; i < 3; i++) { m4.makeTranslation(-s * (-0.045 + i * 0.0215) * -1 * -1, 0.015, 0.075 + i * 0.006); keys.setMatrixAt(n++, m4); }
-    half.add(keys);
-    const hex = cyl(0.021, 0.021, 0.014, red, -s * -0.04 * -1, 0.016, 0.062, 6);
-    half.add(hex);
-    half.rotation.z = s === -1 ? 0.42 : -0.42;
-    half.position.y = 0.045;
-    const plate = rbox(0.15, 0.006, 0.26, 0.003, silver, 0, 0.003, 0.01);
-    const arm = bone([0, 0.006, 0.0], [s * -0.045 * -1, 0.05, 0.0], 0.006, 0.006, silver);
-    const knob = cyl(0.011, 0.011, 0.012, mat('#f26a1b'), s * -0.045 * -1, 0.052, 0.0, 14); knob.rotation.z = Math.PI / 2; arm.add(knob);
-    const h = group(plate, half, arm);
-    h.position.x = s * 0.1;
-    g.add(h); halves.push(h);
+    for (let c = 0; c < 4; c++) { m4.makeTranslation(-s * (c - 1.5) * 0.0235 - s * 0.012, 0.014, 0.032 + stag[Math.min(c + 1, 5)]); keysA.setMatrixAt(na++, m4); }   // rangée basse
+    // grappe de pouce en éventail, côté intérieur (−s)
+    const inn = -s, q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
+    for (let i = 0; i < 3; i++) {
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s * (0.12 + i * 0.26));
+      m4.compose(new THREE.Vector3(inn * (0.012 + i * 0.027), 0.014, 0.1 + i * 0.012), q, one); keysB.setMatrixAt(nb++, m4);
+    }
+    for (let i = 0; i < 2; i++) {
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s * (0.3 + i * 0.26));
+      m4.compose(new THREE.Vector3(inn * (0.04 + i * 0.027), 0.014, 0.135 + i * 0.012), q, one); keysB.setMatrixAt(nb++, m4);
+    }
+    keysA.count = na; keysB.count = nb;
+    half.add(keysA, keysB);
+    // touche rouge en bout de grappe
+    half.add(mesh(capGeo, keyRed, -s * 0.095, 0.014, 0.075));
+    half.rotation.z = s === -1 ? 0.3 : -0.3;
+    half.position.y = 0.05;
+    const h = group(half);
+    // pieds de tenting
+    for (const z of [-0.07, 0.09]) h.add(bone([s * 0.04, 0.0, z], [-s * 0.045, 0.06, z], 0.007, 0.007, silver));
+    h.add(rbox(0.12, 0.006, 0.2, 0.003, silver, s * 0.0, 0.003, 0.0));
+    h.position.x = s * 0.115;
+    g.add(h);
   }
-  g.add(tube([[-0.015, 0.03, 0.0], [0, 0.0, 0.1], [0.015, 0.03, 0.0]], 0.004, mat('#18191b'), { segs: 24, radial: 6 }));
+  g.add(tube([[-0.04, 0.045, 0.03], [-0.01, 0.01, 0.07], [0.01, 0.01, 0.06], [0.04, 0.045, 0.03]], 0.0035, mat('#18191b'), { segs: 24, radial: 6 }));
   return g;
 }
 
 export function verticalMouse() {
-  /* Evoluent VerticalMouse : corps noir dressé, repose-pouce argenté, bouton cuivré. */
+  /* Evoluent VerticalMouse 4 : corps noir mat dressé à ≈ 70°, repose-pouce argenté sur le flanc, deux boutons et molette sur la crête,
+   * deux boutons latéraux sur le pan du pouce, socle bas pour la paume. */
   const g = group();
-  const black = mat('#1a1b1d', { roughness: 0.45 }), chrome = mat('#cfd2d6', { metalness: 0.8, roughness: 0.3 }), copper = mat('#a8613a', { metalness: 0.6, roughness: 0.4 });
-  const body = group(
-    rbox(0.044, 0.1, 0.12, 0.02, black, 0, 0.05, 0),
-    rbox(0.012, 0.075, 0.075, 0.006, chrome, 0.027, 0.056, -0.005),
-    rbox(0.046, 0.02, 0.12, 0.008, copper, 0, 0.012, 0),
-    rbox(0.01, 0.012, 0.03, 0.004, chrome, 0.0, 0.098, -0.04),
-  );
-  body.rotation.z = -0.3;
+  const black = mat('#1a1b1d', { roughness: 0.45 }), grip = mat('#26272b', { roughness: 0.9 }), chrome = mat('#cfd2d6', { metalness: 0.8, roughness: 0.3 }), copper = mat('#a8613a', { metalness: 0.6, roughness: 0.4 });
+  const body = group();
+  const shell = new THREE.SphereGeometry(1, 28, 18); shell.scale(0.03, 0.072, 0.05);
+  const bm = mesh(shell, black); bm.position.set(0, 0.05, 0); body.add(bm);
+  const thumb = mesh((() => { const t = new THREE.SphereGeometry(1, 20, 12); t.scale(0.012, 0.03, 0.05); return t; })(), chrome); thumb.position.set(0.03, 0.04, 0.004); thumb.rotation.z = -0.25; body.add(thumb);
+  for (const z of [-0.016, 0.016]) body.add(rbox(0.012, 0.045, 0.028, 0.005, grip, 0.0, 0.1, z));                 // boutons gauche et droit
+  body.add(cyl(0.006, 0.006, 0.014, copper, 0.0, 0.123, 0.0, 14).rotateX(Math.PI / 2));                         // molette
+  body.add(rbox(0.01, 0.016, 0.014, 0.004, copper, 0.034, 0.075, -0.03));                                        // boutons du pouce
+  body.add(rbox(0.01, 0.016, 0.014, 0.004, copper, 0.034, 0.055, -0.03));
+  body.rotation.z = -0.3; body.position.set(0.0, 0.02, 0);
   g.add(body);
+  g.add(rbox(0.08, 0.016, 0.13, 0.008, black, 0.0, 0.008, 0.0));
   return g;
 }
 
@@ -271,7 +291,7 @@ export function bonsai() {
   g.add(bone([0, 0.1, 0], [0.005, 0.2, 0], 0.044, 0.036, trunk, 10));
   grow([0.005, 0.2, 0], new THREE.Vector3(0.05, 1, 0).normalize(), 0.085, 0.034, 4);
   const leafGeo = new THREE.SphereGeometry(1, 5, 3);
-  const per = 6, count = tips.length * per;
+  const per = 4, count = tips.length * per;
   const leaves = new THREE.InstancedMesh(leafGeo, mat('#ffffff', { roughness: 0.8 }), count);
   leaves.castShadow = true;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
@@ -362,10 +382,12 @@ export function ekstrem() {
    *  - l'avant : jambe ronde et barre en arche qui revient vers le centre,
    *  - pieds avec embouts gris. */
   const g = group();
-  const fabric = mat('#25272d', { roughness: 1 });
-  const pad = mat('#2d2f36', { roughness: 1 });
+  const weave = canvasTexture(64, 64, (c, w, h) => { c.fillStyle = '#808080'; c.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) { c.fillStyle = (x / 4 + y / 4) % 2 ? '#b5b5b5' : '#5a5a5a'; c.fillRect(x, y, 3, 3); } });
+  weave.wrapS = weave.wrapT = THREE.RepeatWrapping; weave.repeat.set(10, 10); weave.colorSpace = THREE.NoColorSpace;
+  const fabric = new THREE.MeshStandardMaterial({ color: '#25272d', roughness: 1, bumpMap: weave, bumpScale: 1.4 });
+  const pad = new THREE.MeshStandardMaterial({ color: '#2d2f36', roughness: 1, bumpMap: weave, bumpScale: 1.4 });
   const R = 0.058, X0 = 0.34, ZF = 0.64, zc = -0.32;
-  const T = (pts, r = R) => g.add(tube(pts, r, fabric, { segs: 140, radial: 18 }));
+  const T = (pts, r = R) => g.add(tube(pts, r, fabric, { segs: 72, radial: 12 }));
   // profil de la poutre matelassée dans le plan (y, z) : section 0,23 (largeur) × 0,105 (épaisseur)
   const profile = [[0.79, 0.06], [0.74, 0.085], [0.66, 0.12], [0.61, 0.17], [0.59, 0.24], [0.585, 0.36], [0.57, 0.42], [0.52, 0.455], [0.46, 0.48], [0.435, 0.52], [0.43, 0.6], [0.43, 0.66]];
   const sweep = (xb) => {
@@ -374,7 +396,7 @@ export function ekstrem() {
     const hx = w / 2, hy = t / 2;          // x = normale de Frenet (largeur, le long de x), y = binormale (épaisseur, dans le plan du profil)
     sh.moveTo(-hx + r, -hy); sh.lineTo(hx - r, -hy); sh.absarc(hx - r, -hy + r, r, -Math.PI / 2, 0); sh.lineTo(hx, hy - r); sh.absarc(hx - r, hy - r, r, 0, Math.PI / 2);
     sh.lineTo(-hx + r, hy); sh.absarc(-hx + r, hy - r, r, Math.PI / 2, Math.PI); sh.lineTo(-hx, -hy + r); sh.absarc(-hx + r, -hy + r, r, Math.PI, Math.PI * 1.5);
-    return mesh(new THREE.ExtrudeGeometry(sh, { extrudePath: curve, steps: 160, bevelEnabled: false, curveSegments: 6 }), pad);
+    return mesh(new THREE.ExtrudeGeometry(sh, { extrudePath: curve, steps: 90, bevelEnabled: false, curveSegments: 3 }), pad);
   };
   for (const s of [-1, 1]) {
     const x0 = s * X0, xb = s * 0.125;
@@ -512,16 +534,57 @@ export function concreteLamp() {
   return g;
 }
 
-/* ───────────── ENCEINTE (type lampe-enceinte) ───────────── */
-export function speaker() {
+/* ───────────── ENCEINTE JBL L52 Classic sur pied ─────────────
+ * Ébénisterie noyer (0,32 × 0,20 × 0,21 m), baffle noir granuleux, tweeter à dôme en haut, évent rond à côté, boomer de 5,25″ à cône crème
+ * et bobine noire, quatre vis rondes aux angles, plaque JBL orange avec bouton de réglage. `flip` inverse la disposition (paire gauche/droite). */
+export function speaker(flip = false) {
   const g = group();
-  g.add(cyl(0.07, 0.08, 0.2, mat('#2b2b2e', { roughness: 1 }), 0, 0.1, 0, 32));
-  g.add(cyl(0.083, 0.083, 0.012, mat('#17181a'), 0, 0.006, 0, 32));
-  const head = rbox(0.17, 0.19, 0.13, 0.05, mat('#6a6a70', { roughness: 0.95 }), 0, 0.3, 0);
-  g.add(head);
-  g.add(cyl(0.035, 0.035, 0.03, mat('#2b2b2e'), 0, 0.21, 0, 20));
-  g.userData.head = head;
-  return g;
+  const grain = canvasTexture(256, 256, (c, w, h) => {
+    c.fillStyle = '#6b4128'; c.fillRect(0, 0, w, h);
+    const r = rng(4);
+    for (let i = 0; i < 90; i++) { c.fillStyle = `rgba(${r() > 0.5 ? '40,22,12' : '120,76,46'},${0.18 + r() * 0.25})`; c.fillRect(0, r() * h, w, 1 + r() * 3); }
+  });
+  const walnut = new THREE.MeshStandardMaterial({ map: grain, roughness: 0.5 });
+  const baffle = new THREE.MeshStandardMaterial({ map: canvasTexture(64, 64, (c, w, h) => { c.fillStyle = '#121214'; c.fillRect(0, 0, w, h); const r = rng(6); for (let i = 0; i < 260; i++) { c.fillStyle = r() > 0.5 ? '#1d1d20' : '#0a0a0b'; c.fillRect(r() * w, r() * h, 1, 1); } }), roughness: 0.95 });
+  const black = mat('#0c0c0e', { roughness: 0.6 });
+  const W = 0.2, H = 0.32, D = 0.21;
+  // stand
+  const stand = group();
+  const steel = mat('#1b1c1f', { roughness: 0.4, metalness: 0.5 });
+  stand.add(rbox(0.27, 0.014, 0.27, 0.006, steel, 0, 0.007, 0));
+  for (const x of [-0.07, 0.07]) stand.add(cyl(0.011, 0.011, 0.56, steel, x, 0.3, 0, 10));
+  stand.add(rbox(0.24, 0.012, 0.24, 0.005, steel, 0, 0.586, 0));
+  g.add(stand);
+  const cab = group(); cab.position.y = 0.592;
+  cab.add(rbox(W, H, D, 0.008, walnut, 0, H / 2, 0));
+  cab.add(rbox(W - 0.006, H - 0.006, 0.012, 0.004, baffle, 0, H / 2, D / 2 + 0.002));
+  const f = D / 2 + 0.01, sx = flip ? -1 : 1;
+  // boomer
+  const wy = 0.105;
+  const ring = mesh(new THREE.TorusGeometry(0.058, 0.007, 8, 40), black); ring.position.set(0, wy, f); cab.add(ring);
+  const cone = mesh(new THREE.CylinderGeometry(0.052, 0.022, 0.026, 40, 1, true), new THREE.MeshStandardMaterial({ color: '#d9d0a6', roughness: 0.7, side: THREE.DoubleSide }));
+  cone.rotation.x = Math.PI / 2; cone.position.set(0, wy, f - 0.006); cab.add(cone);
+  for (let i = 0; i < 4; i++) { const rr = mesh(new THREE.TorusGeometry(0.04 - i * 0.008, 0.0014, 4, 32), mat('#bfb68c')); rr.position.set(0, wy, f - 0.004 + i * 0.002); cab.add(rr); }
+  const cap = sph(0.026, mat('#0f0f11', { roughness: 0.4 }), 0, wy, f - 0.004, 18, 12); cap.scale.z = 0.7; cab.add(cap);
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; cab.add(cyl(0.0035, 0.0035, 0.003, black, Math.cos(a) * 0.066, wy + Math.sin(a) * 0.066, f + 0.002, 8).rotateX(Math.PI / 2)); }
+  // tweeter
+  const ty = 0.255, tx = -sx * 0.045;
+  const tr = mesh(new THREE.TorusGeometry(0.03, 0.006, 8, 28), black); tr.position.set(tx, ty, f); cab.add(tr);
+  const tcone = mesh(new THREE.CylinderGeometry(0.03, 0.012, 0.018, 28, 1, true), new THREE.MeshStandardMaterial({ color: '#17171a', roughness: 0.5, side: THREE.DoubleSide })); tcone.rotation.x = Math.PI / 2; tcone.position.set(tx, ty, f - 0.004); cab.add(tcone);
+  cab.add(sph(0.012, mat('#2c2c30', { metalness: 0.6, roughness: 0.35 }), tx, ty, f - 0.003, 14, 10));
+  // évent
+  const px = sx * 0.045;
+  const port = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.05, 24, 1, true), new THREE.MeshStandardMaterial({ color: '#0a0a0c', roughness: 0.8, side: THREE.DoubleSide })); port.rotation.x = Math.PI / 2; port.position.set(px, ty, f - 0.02); cab.add(port);
+  cab.add(mesh(new THREE.TorusGeometry(0.027, 0.004, 6, 24), black, px, ty, f));
+  // plaque JBL + bouton
+  cab.add(box(0.07, 0.022, 0.003, mat('#161618'), 0, 0.305, f + 0.001));
+  cab.add(box(0.016, 0.009, 0.0032, mat('#e8601a', { roughness: 0.5 }), -0.022, 0.31, f + 0.0015));
+  cab.add(cyl(0.007, 0.007, 0.01, black, 0.018, 0.307, f + 0.004, 12).rotateX(Math.PI / 2));
+  // vis aux angles
+  for (const [x, y] of [[-0.088, 0.02], [0.088, 0.02], [-0.088, 0.3], [0.088, 0.3]]) cab.add(sph(0.0065, black, x, y, f + 0.003, 8, 6));
+  g.add(cab);
+  g.rotation.y = 0;
+  return bake(g);
 }
 
 /* ───────────── TABOURET JAPONAIS ───────────── */
@@ -548,23 +611,35 @@ export function bench() {
   return bake(g);
 }
 
-/* ───────────── ÉTAGÈRES ───────────── */
-export function shelf(seed = 1) {
-  const r = rng(seed);
+/* ───────────── ÉTAGÈRE MODULAIRE « Omni » (Giotto Stoppino, Kartell) : plastique crème, montants à coins arrondis ───────────── */
+export function shelf() {
   const g = group();
-  const frame = mat('#a8a48e', { roughness: 0.5, metalness: 0.3 }), board = mat('#c8c4ac', { roughness: 0.85 });
-  const W = 0.8, D = 0.36, H = 0.9;
-  for (const x of [-W / 2 + 0.015, W / 2 - 0.015]) for (const z of [-D / 2 + 0.015, D / 2 - 0.015]) g.add(cyl(0.011, 0.011, H, frame, x, H / 2, z, 8));
-  for (const y of [0.04, H * 0.5, H - 0.01]) g.add(box(W, 0.016, D, board, 0, y, 0));
-  const cols = ['#e8452b', '#243044', '#f3b43f', '#5aa97a', '#6ea0e0', '#8a5a44', '#efe6d2'];
-  for (const y of [0.048, H * 0.5 + 0.008]) {
-    let x = -W / 2 + 0.06;
-    const n = 4 + ((r() * 4) | 0);
-    for (let i = 0; i < n && x < W / 2 - 0.08; i++) {
-      const th = 0.025 + r() * 0.03, h = 0.17 + r() * 0.1;
-      g.add(box(th, h, 0.2, mat(cols[(r() * cols.length) | 0], { roughness: 0.8 }), x, y + h / 2, 0.0));
-      x += th + 0.003;
-    }
-  }
+  const cream = new THREE.MeshStandardMaterial({ color: '#f2ecdb', roughness: 0.5, emissive: '#3a362c', emissiveIntensity: 0.35 });
+  const W = 1.66, H = 1.5, D = 0.36, T = 0.04;
+  const X = [-W / 2 + T / 2, 0, W / 2 - T / 2];
+  // montants (dépassent en haut de la dernière tablette)
+  for (const x of X) g.add(rbox(T, H, D, 0.016, cream, x, H / 2, 0));
+  // tablettes (hauteur depuis le sol) par travée : [travée gauche, travée droite]
+  const bays = [[-W / 4 + 0.005, W / 2 - T - 0.0], [W / 4 - 0.005, 0]];
+  const L = (W - 3 * T) / 2;
+  const left = [1.285, 1.05, 0.817, 0.257], right = [1.285, 1.07, 0.55];
+  for (const y of left) g.add(rbox(L, 0.036, D, 0.014, cream, -(L / 2 + T / 2), y, 0));
+  for (const y of right) g.add(rbox(L, 0.036, D, 0.014, cream, (L / 2 + T / 2), y, 0));
+  // objets
+  const bx = (L / 2 + T / 2);
+  const cols = ['#4f86b8', '#ececec', '#6aa86a', '#d9d4c4'];
+  for (let i = 0; i < 4; i++) g.add(cyl(0.03, 0.028, 0.08, mat(cols[i], { roughness: 0.4 }), -bx - 0.26 + i * 0.075, 1.05 + 0.058, 0.0, 14));
+  g.add(cyl(0.032, 0.03, 0.07, mat('#8fbf8a'), bx + 0.28, 1.07 + 0.053, 0.05, 14));
+  const bag = canvasTexture(64, 64, (c, w, h) => { for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { c.fillStyle = (x + y) % 2 ? '#e8e6e0' : '#2a2a2c'; c.fillRect(x * 8, y * 8, 8, 8); } });
+  g.add(rbox(0.28, 0.14, 0.12, 0.03, new THREE.MeshStandardMaterial({ map: bag, roughness: 0.8 }), bx - 0.02, 1.07 + 0.088, 0.02));
+  g.add(cyl(0.12, 0.12, 0.004, mat('#ece8dc'), -bx + 0.1, 0.817 + 0.022, 0.0, 24));
+  const books = ['#d9d4c4', '#2c2c30', '#e8e6dc', '#c9402e'];
+  for (let i = 0; i < 4; i++) g.add(box(0.28 - i * 0.015, 0.03, 0.2, mat(books[i], { roughness: 0.8 }), -bx + 0.12 + (i % 2) * 0.01, 0.257 + 0.033 + i * 0.03, 0.0));
+  const kettle = group(sph(0.07, mat('#c9ccd0', { metalness: 0.8, roughness: 0.3 }), 0, 0.06, 0, 18, 12), cyl(0.012, 0.03, 0.05, mat('#c9ccd0', { metalness: 0.8, roughness: 0.3 }), 0, 0.14, 0, 12), sph(0.014, mat('#c9402e'), 0, 0.17, 0, 8, 6));
+  kettle.add(mesh(new THREE.TorusGeometry(0.06, 0.007, 6, 18, Math.PI), mat('#1b1c1f'), 0, 0.14, 0).rotateZ(0));
+  kettle.position.set(bx - 0.15, 0.55 + 0.018, 0.0); g.add(kettle);
+  const vase = group(cyl(0.05, 0.06, 0.13, mat('#cfc9bd', { roughness: 0.6 }), 0, 0.065, 0, 18), cyl(0.04, 0.04, 0.05, mat('#bdb7aa', { roughness: 0.6 }), 0, 0.155, 0, 18), sph(0.012, mat('#bdb7aa'), 0, 0.19, 0, 8, 6));
+  vase.position.set(bx + 0.18, 0.55 + 0.018, -0.02); g.add(vase);
+  g.userData.top = H;
   return bake(g);
 }
