@@ -106,9 +106,6 @@ export function createChashitsu() {
   /* poteaux d'angle + poutres sur les trois côtés fermés */
   const post = WOOD(), beam = DARK();
   const PH = 1.95;
-  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) g.add(box(0.1, PH, 0.1, post, x * (RW / 2 + 0.03), RH + PH / 2, z * (RD / 2 + 0.03)));
-  g.add(box(RW + 0.16, 0.09, 0.09, beam, 0, RH + PH, -RD / 2 - 0.03));
-  for (const x of [-1, 1]) g.add(box(0.09, 0.09, RD + 0.16, beam, x * (RW / 2 + 0.03), RH + PH, 0));
 
   /* paroi côté mer : 3 shoji sur 3 rails */
   const rail = box(RW, 0.04, 0.14, beam, 0, RH + 0.02, RD / 2 - 0.02); g.add(rail);
