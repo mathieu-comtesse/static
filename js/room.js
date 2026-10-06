@@ -1,6 +1,8 @@
 import { THREE, group, mat, inkify, ink, contactShadow } from './kit.js';
 import * as F from './furniture.js';
 import { createCharacter } from './character.js';
+import { teaSet, chabana, shoePair, updateSteam } from './tea.js';
+import { createRitual } from './ritual.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 
 const DEG = Math.PI / 180;
@@ -66,7 +68,7 @@ export async function createRoom(container, bubbleEl) {
   const lamps = {};
   const mkLamp = (key, glowMat, light, onColor, offColor) => { lamps[key] = { glow: glowMat, light, on: false, onColor, offColor, k: 0 }; glowMat.color.set(offColor); };
 
-  if (rugTex) add('rug', F.rug(rugTex), 0.2, 0.9, 0, 0, 0.0, world, 0);
+  if (rugTex) add('rug', F.rug(rugTex, 2.4, 3.3), 0.0, 1.0, 0, 0, 0.0, world, 0);
 
   // bureau + objets
   const deskSet = group();
@@ -77,7 +79,7 @@ export async function createRoom(container, bubbleEl) {
   const mouse = F.verticalMouse(); mouse.position.set(0.3, 0.74, 0.24); mouse.rotation.y = 0.1; deskSet.add(mouse);
   const brontes = F.brontes();
   add('brontes', brontes, -0.8, -0.22, 0.4, 0.74, 0, deskSet);
-  inkify(deskSet);
+  inkify(deskSet, { skip: (o) => { for (let p = o; p; p = p.parent) if (p.userData && p.userData.id === 'brontes') return true; return false; } });
   add('desk', deskSet, -3.1, 0.25, Math.PI / 2, 0, 0.12);
   mkLamp('brontes', brontes.userData.glow, new THREE.PointLight('#ffd9a0', 0, 3, 2), '#fff0d0', '#9a948a');
 
@@ -91,7 +93,13 @@ export async function createRoom(container, bubbleEl) {
   add('speaker1', sp1, -3.9, -1.1, 0.6, 0, 0.5);
 
   const ek = F.ekstrem(); add('ekstrem', ek, 1.95, -1.5, -0.45, 0, 0.35);
-  add('stool', F.stool(), 0.25, 0.85, 0.4, 0, 0.55);
+  // rituel du thé : tatami, zabutons, ustensiles ; origine = centre du zabuton de l'invité
+  const TEA = { x: 0.0, z: 0.25, y: 0.02 };
+  const tea = teaSet();
+  add('cha', tea, TEA.x, TEA.z, 0, TEA.y, 0.5, world, 0);
+  const shoes = shoePair(); inkify(shoes); add('shoes', shoes, TEA.x, TEA.z - 0.42, 0, TEA.y, 0.6, world, 0);
+  const stool = F.stool(); add('stool', stool, TEA.x, TEA.z + 1.95, 0.2, TEA.y, 0.55);
+  const flower = chabana(); flower.position.y = 0.38; stool.add(flower);
 
   const usmSet = group();
   usmSet.add(F.usm());
@@ -100,8 +108,9 @@ export async function createRoom(container, bubbleEl) {
   add('usm', usmSet, -0.7, -2.4, 0, 0, 0.45);
   mkLamp('beton', cl.userData.glow, new THREE.PointLight('#ffe9c4', 0, 2.5, 2), '#fff3d6', '#8a8780');
 
+  const ARC_YAW = -2.36;                      // le bras du lampadaire s'incline vers le tapis
   const arc = F.arcLamp();
-  add('arc', arc, 0.85, -2.15, 0.63, 0, 0.6, world, 0);
+  add('arc', arc, 0.85, -2.15, ARC_YAW, 0, 0.6, world, 0);
   mkLamp('arc', arc.userData.glow, new THREE.PointLight('#ffe0a8', 0, 6, 2), '#ffe6b0', '#8a8272');
 
   if (paintTex) add('painting', F.painting(paintTex), 0.62, -1.98, 0.42, 0, 0.7).children[0].rotation.x = -0.22;
@@ -112,7 +121,7 @@ export async function createRoom(container, bubbleEl) {
 
   // positions des sources lumineuses (repère monde)
   const yawed = (v, yaw, ox, oz) => { v = v.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw); return [ox + v.x, v.y, oz + v.z]; };
-  lamps.arc.light.position.set(...yawed(new THREE.Vector3(1.38, 2.05, 0), 0.63, 0.85, -2.15));
+  lamps.arc.light.position.set(...yawed(new THREE.Vector3(1.38, 2.05, 0), ARC_YAW, 0.85, -2.15));
   lamps.beton.light.position.set(-0.3, 1.0, -2.3);
   lamps.brontes.light.position.set(...yawed(new THREE.Vector3(-0.8, 1.15, -0.22), Math.PI / 2, -3.1, 0.25));
   for (const L of Object.values(lamps)) world.add(L.light);
@@ -121,6 +130,7 @@ export async function createRoom(container, bubbleEl) {
   const hero = await createCharacter();
   hero.group.visible = false; world.add(hero.group);
   if (/[?&]squelette/.test(location.search)) scene.add(new THREE.SkeletonHelper(hero.group));
+  const ritual = createRitual({ hero, tea });
 
   /* ─── caméra orthographique ─── */
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
@@ -244,14 +254,14 @@ export async function createRoom(container, bubbleEl) {
   const seat = (x, z, yaw, back) => { const v = new THREE.Vector3(0, 0, back).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw); return [x + v.x, 0, z + v.z]; };
   const deskYaw = -Math.PI / 2 + 0.15, ekYaw = -0.45;
   const stations = {
-    desk:     { label: 'Au bureau',        clip: 'Driving_Loop',        y: 0.0, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw },
-    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.0, face: 'happy',   pos: seat(1.95, -1.5, ekYaw, -0.1), yaw: ekYaw },
+    desk:     { label: 'Au bureau',        clip: 'Driving_Loop',        y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw },
+    ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.2, face: 'happy',   pos: seat(1.95, -1.5, ekYaw, -0.1), yaw: ekYaw },
     usm:      { label: 'Un vinyle',        clip: 'Idle_Loop',           y: 0.0, face: 'happy',   ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true },
-    stool:    { label: 'Petite pause',     clip: 'Sitting_Talking_Loop', y: 0.0, face: 'neutral', talk: true, pos: [0.25, 0, 0.85], yaw: 0.75 },
+    cha:      { label: 'Cérémonie du thé', ritual: true, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0 },
     bonsai:   { label: 'J\u2019arrose le bonsaï', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-3.68, 0, 1.78], yaw: 0.98 },
     dracaena: { label: 'J\u2019arrose la plante', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [2.45, 0, -1.55], yaw: 2.3 },
   };
-  stations.chair = stations.desk; stations.bench = stations.bonsai;
+  stations.chair = stations.desk; stations.bench = stations.bonsai; stations.stool = stations.cha; stations.shoes = stations.cha;
 
   let music = false, current = null, bubbleT = 0;
   const speakers = ['speaker1', 'speaker2'].map((id) => items.find((i) => i.id === id));
@@ -281,8 +291,10 @@ export async function createRoom(container, bubbleEl) {
     if (hero.group.visible) poof(hero.group.position);
     hero.group.position.copy(pos);
     hero.group.rotation.y = st.yaw;
-    hero.play(st.clip, { fade: 0.01 });
-    hero.setBase(st.face); hero.talk(!!st.talk); hero.can.visible = !!st.can; hero.setOverride(st.ov || null);
+    ritual.stop(); hero.setPost(null); hero.setShoes(true);
+    if (st.ritual) { hero.group.visible = true; ritual.start(); }
+    else hero.play(st.clip, { fade: 0.01 });
+    if (!st.ritual) hero.setBase(st.face); hero.talk(!!st.talk); hero.can.visible = !!st.can; hero.setOverride(st.ov || null);
     hero.flash('amazed', 0.6);
     hero.group.visible = true;
     hero.group.scale.setScalar(0.01);
@@ -294,7 +306,7 @@ export async function createRoom(container, bubbleEl) {
   }
   function leave() {
     if (!hero.group.visible) return;
-    poof(hero.group.position); hero.group.visible = false; current = null; bubbleEl.classList.remove('show'); rain.active = false;
+    ritual.stop(); poof(hero.group.position); hero.group.visible = false; current = null; bubbleEl.classList.remove('show'); rain.active = false;
   }
 
   /* gouttes d'arrosage */
@@ -342,9 +354,13 @@ export async function createRoom(container, bubbleEl) {
     view.az += (view.tAz - view.az) * kv; view.el += (view.tEl - view.el) * kv; view.zoom += (view.tZoom - view.zoom) * kv;
     orient(); applyFrustum();
     // personnage
+    if (ritual.state.active) ritual.update(dt);
+    // vapeur du bol et de la kama
+    { const ud = tea.userData; ud.sBowl.position.copy(ritual.object.position).y += 0.075; ud.sKama.position.copy(ud.fk.position).add(ud.fk.userData.steamAnchor);
+      const drunk = ud.bowl.userData.tea.visible ? 1 : 0; updateSteam(ud.sBowl, t, 0.3, 0.1, drunk); updateSteam(ud.sKama, t + 1.3, 0.34, 0.13, 0.8); }
     if (hero.group.visible) {
       hero.update(dt, t);
-      const s = hero.group.scale.x; hero.group.scale.setScalar(s + (0.92 - s) * (1 - Math.exp(-dt * 10)));
+      const s = hero.group.scale.x; hero.group.scale.setScalar(s + (1 - s) * (1 - Math.exp(-dt * 10)));
       bubbleT += dt;
       if (bubbleT > 0.35) bubbleEl.classList.add('show');
       v3.set(0, 0, 0); hero.head.getWorldPosition(v3); v3.y += 0.5;
@@ -388,5 +404,5 @@ export async function createRoom(container, bubbleEl) {
   io.observe(container);
   document.addEventListener('visibilitychange', () => { if (document.hidden) running = false; else if (!running) { running = true; clock.getDelta(); requestAnimationFrame(frame); } });
 
-  return { activate, leave, lamps, view, target, opts, scene, camera, renderer };
+  return { activate, leave, lamps, view, target, opts, hero, ritual, tea, scene, camera, renderer };
 }

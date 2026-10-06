@@ -127,31 +127,44 @@ export function verticalMouse() {
   return g;
 }
 
-/* Lampe Brontes (Cini Boeri / Artemide) : fût rouge + calotte nervurée articulée */
+/* Lampe Brontes (Cini Boeri, Artemide) : fût rouge à coupe oblique, collerette cuivrée, calotte en alu cannelée bordée d'un jonc de
+ * caoutchouc ondulé, articulée sur une charnière cuivrée ; la lumière sort sous la calotte. */
 export function brontes() {
   const g = group();
-  const red = mat('#a93a29', { roughness: 0.4 }), alu = mat('#c8cbcf', { metalness: 0.7, roughness: 0.35 }), rubber = mat('#17181a');
-  g.add(cyl(0.05, 0.05, 0.3, red, 0, 0.15, 0, 36));
-  g.add(cyl(0.055, 0.055, 0.012, rubber, 0, 0.006, 0, 36));
+  const red = mat('#8f3023', { roughness: 0.35, metalness: 0.15 }), alu = mat('#cfd2d6', { metalness: 0.75, roughness: 0.38 });
+  const rubber = mat('#1b1c1f', { roughness: 0.8 }), copper = mat('#c4642b', { metalness: 0.8, roughness: 0.35 });
+  const body = new THREE.CylinderGeometry(0.066, 0.066, 0.36, 40, 1);
+  const bp = body.attributes.position;
+  for (let i = 0; i < bp.count; i++) if (bp.getY(i) > 0) bp.setY(i, bp.getY(i) + bp.getZ(i) * 0.14 - 0.005);   // coupe oblique
+  body.computeVertexNormals(); body.translate(0, 0.18, 0);
+  g.add(mesh(body, red));
+  g.add(cyl(0.07, 0.07, 0.012, rubber, 0, 0.006, 0, 40));
   const glow = new THREE.MeshBasicMaterial({ color: '#fff0d0', toneMapped: false });
+  // collerette cuivrée + charnière
+  const ring = mesh(new THREE.TorusGeometry(0.066, 0.005, 6, 40), copper); ring.rotation.x = Math.PI / 2; ring.position.y = 0.36; g.add(ring);
+  const lampDisc = new THREE.Mesh(new THREE.CircleGeometry(0.062, 28), glow); lampDisc.rotation.x = -Math.PI / 2; lampDisc.position.y = 0.362; g.add(lampDisc);
+  g.add(box(0.05, 0.035, 0.014, copper, 0, 0.378, -0.066));
+  // calotte : demi-ellipsoïde cannelé
   const shade = group();
-  const dome = new THREE.SphereGeometry(1, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2);
-  const d = mesh(dome, alu); d.scale.set(0.19, 0.07, 0.12); shade.add(d);
-  for (let i = 1; i <= 5; i++) {
-    const r = Math.cos(i * 0.26);
-    const ring = mesh(new THREE.TorusGeometry(1, 0.035, 6, 36), alu);
-    ring.rotation.x = Math.PI / 2; ring.scale.set(0.19 * r, 0.12 * r, 0.06 * Math.sin(i * 0.26) + 0.002);
-    ring.position.y = 0.07 * Math.sin(i * 0.26);
-    ring.scale.z = 0.02; shade.add(ring);
+  const dome = new THREE.SphereGeometry(1, 72, 20, 0, Math.PI * 2, 0, Math.PI / 2);
+  const dp = dome.attributes.position;
+  for (let i = 0; i < dp.count; i++) {
+    const x = dp.getX(i), y = dp.getY(i), z = dp.getZ(i), th = Math.atan2(z, x), rad = Math.hypot(x, z);
+    const f = 1 + 0.03 * Math.cos(th * 26) * (1 - y) * Math.min(1, rad * 4);
+    dp.setXYZ(i, x * f, y, z * f);
   }
-  const rim = mesh(new THREE.TorusGeometry(1, 0.03, 8, 40), rubber); rim.rotation.x = Math.PI / 2; rim.scale.set(0.19, 0.12, 0.8); shade.add(rim);
-  const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.17, 28), glow);
-  lamp.rotation.x = Math.PI / 2; lamp.scale.set(1, 0.66, 1); lamp.position.y = -0.002; lamp.rotation.x = Math.PI / 2; shade.add(lamp);
-  shade.position.set(0, 0.31, 0.02);
-  shade.rotation.set(0.0, 0.0, 0.34);
+  dome.computeVertexNormals();
+  const d = mesh(dome, alu); d.scale.set(0.17, 0.08, 0.105); shade.add(d);
+  // jonc de caoutchouc : ellipse ondulée
+  const pts = [];
+  for (let i = 0; i < 64; i++) { const a = (i / 64) * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * 0.174, Math.sin(a * 2) * 0.012 + Math.sin(a * 3) * 0.006, Math.sin(a) * 0.109)); }
+  const jonc = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 120, 0.0135, 8, true), rubber); jonc.castShadow = true; shade.add(jonc);
+  const underGlow = new THREE.Mesh(new THREE.CircleGeometry(0.16, 36), glow); underGlow.rotation.x = Math.PI / 2; underGlow.scale.set(1, 0.62, 1); underGlow.position.y = 0.002; shade.add(underGlow);
+  shade.position.set(0.0, 0.395, 0.07);
+  shade.rotation.set(-0.45, 0.12, 0.05);
   g.add(shade);
   g.userData.glow = glow;
-  g.userData.light = shade;
+  g.userData.shade = shade;
   return g;
 }
 
@@ -298,27 +311,36 @@ export function rug(tex, w = 1.6, l = 2.25) {
 
 /* ───────────── FAUTEUIL EKSTREM ───────────── */
 export function ekstrem() {
-  /* Ekstrem (Terje Ekstrøm) : un seul diamètre de tube capitonné, quatre pieds à embouts gris.
-   *  - arche avant en « ∩ » qui porte les deux pieds de devant,
-   *  - deux montants arrière verticaux dont le sommet se recourbe vers le centre (les deux bosses du « M »),
-   *  - ces deux tubes redescendent en S, se croisent au centre et forment l'assise,
-   *  - un accoudoir de chaque côté, du montant arrière jusqu'à l'arche. */
+  /* Ekstrem (Terje Ekstrøm), mesuré sur les photos de face, de profil et de trois quarts (H 0,84 · L 0,80 · P 0,76 m) :
+   *  - par côté, un poteau arrière rond qui monte jusqu'au « M », se recourbe vers le centre et rejoint le dossier,
+   *  - une poutre matelassée par côté (jointes par une couture au centre) : dossier incliné, assise arrière haute, marche arrondie,
+   *    assise avant basse avec sa cuvette ; section rectangulaire à angles très arrondis, balayée le long du profil en S,
+   *  - l'avant : jambe ronde et barre en arche qui revient vers le centre,
+   *  - pieds avec embouts gris. */
   const g = group();
-  const fabric = mat('#2a2d36', { roughness: 1 });
-  const R = 0.078, W = 0.37;
-  const T = (pts, r = R) => g.add(tube(pts, r, fabric, { segs: 120, radial: 18 }));
-  // arche avant
-  T([[-W, 0.05, 0.37], [-W, 0.3, 0.37], [-W + 0.035, 0.425, 0.37], [-0.17, 0.46, 0.37], [0.17, 0.46, 0.37], [W - 0.035, 0.425, 0.37], [W, 0.3, 0.37], [W, 0.05, 0.37]]);
+  const fabric = mat('#25272d', { roughness: 1 });
+  const pad = mat('#2d2f36', { roughness: 1 });
+  const R = 0.058, X0 = 0.34, ZF = 0.64, zc = -0.32;
+  const T = (pts, r = R) => g.add(tube(pts, r, fabric, { segs: 140, radial: 18 }));
+  // profil de la poutre matelassée dans le plan (y, z) : section 0,23 (largeur) × 0,105 (épaisseur)
+  const profile = [[0.79, 0.06], [0.74, 0.085], [0.66, 0.12], [0.61, 0.17], [0.59, 0.24], [0.585, 0.36], [0.57, 0.42], [0.52, 0.455], [0.46, 0.48], [0.435, 0.52], [0.43, 0.6], [0.43, 0.66]];
+  const sweep = (xb) => {
+    const curve = new THREE.CatmullRomCurve3(profile.map(([y, z]) => new THREE.Vector3(xb, y, zc + z)), false, 'centripetal');
+    const w = 0.23, t = 0.105, r = 0.05, sh = new THREE.Shape();
+    const hx = w / 2, hy = t / 2;          // x = normale de Frenet (largeur, le long de x), y = binormale (épaisseur, dans le plan du profil)
+    sh.moveTo(-hx + r, -hy); sh.lineTo(hx - r, -hy); sh.absarc(hx - r, -hy + r, r, -Math.PI / 2, 0); sh.lineTo(hx, hy - r); sh.absarc(hx - r, hy - r, r, 0, Math.PI / 2);
+    sh.lineTo(-hx + r, hy); sh.absarc(-hx + r, hy - r, r, Math.PI / 2, Math.PI); sh.lineTo(-hx, -hy + r); sh.absarc(-hx + r, -hy + r, r, Math.PI, Math.PI * 1.5);
+    return mesh(new THREE.ExtrudeGeometry(sh, { extrudePath: curve, steps: 160, bevelEnabled: false, curveSegments: 6 }), pad);
+  };
   for (const s of [-1, 1]) {
-    const x = s * W;
-    // montant arrière, bosse, descente en S vers le centre puis assise jusqu'à l'arche avant (côté opposé)
-    T([[x, 0.05, -0.3], [x, 0.4, -0.3], [x, 0.7, -0.3], [x - s * 0.04, 0.83, -0.29], [x - s * 0.13, 0.82, -0.26], [x - s * 0.24, 0.7, -0.2],
-       [-s * 0.01, 0.56, -0.12], [-s * 0.14, 0.45, 0.04], [-s * 0.25, 0.4, 0.21], [-s * 0.32, 0.43, 0.33], [-s * 0.34, 0.45, 0.37]]);
-    // accoudoir
-    T([[x, 0.58, -0.3], [x, 0.56, -0.05], [x, 0.5, 0.2], [x, 0.44, 0.37]], R * 0.96);
-    // pieds : embouts gris
-    g.add(cyl(R * 0.9, R * 0.98, 0.035, mat('#4a4c52', { roughness: 0.55 }), x, 0.0175, 0.37, 22));
-    g.add(cyl(R * 0.9, R * 0.98, 0.035, mat('#4a4c52', { roughness: 0.55 }), x, 0.0175, -0.3, 22));
+    const x0 = s * X0, xb = s * 0.125;
+    // poteau arrière + bosse du « M » : il redescend vers le centre et se fond dans le dossier
+    T([[x0, 0.02, zc], [x0, 0.5, zc], [x0, 0.73, zc], [x0 - s * 0.01, 0.8, zc + 0.01], [x0 - s * 0.06, 0.835, zc + 0.03], [x0 - s * 0.14, 0.81, zc + 0.06], [x0 - s * 0.2, 0.76, zc + 0.075], [xb + s * 0.02, 0.76, zc + 0.075]]);
+    g.add(sweep(xb));
+    g.add(cyl(0.048, 0.048, 0.006, mat('#1a1b20', { roughness: 1 }), xb, 0.4835, zc + 0.6, 24));          // cuvette d'assise
+    // avant : arche qui revient vers le centre, jambe ronde
+    T([[s * 0.005, 0.43, zc + ZF], [s * 0.2, 0.43, zc + ZF], [x0 - s * 0.03, 0.42, zc + ZF], [x0, 0.35, zc + ZF], [x0, 0.02, zc + ZF]]);
+    for (const z of [zc, zc + ZF]) g.add(cyl(R * 0.92, R, 0.035, mat('#4a4c52', { roughness: 0.55 }), x0, 0.0175, z, 22));
   }
   return bake(g);
 }
@@ -405,28 +427,43 @@ export function turntable() {
 }
 
 export function concreteLamp() {
+  /* Lampe Béton (Le Corbusier, Chandigarh) : profil en équerre moulé d'un bloc — socle plat, concavité qui remonte,
+   * paroi arrière, capot cylindrique en surplomb avec la fente lumineuse dessous. Extérieur gris, intérieur crème. */
   const g = group();
+  const W = 0.46;
   const s = new THREE.Shape();
-  s.moveTo(0, 0); s.lineTo(0.3, 0); s.lineTo(0.3, 0.04);
-  s.bezierCurveTo(0.12, 0.04, 0.075, 0.08, 0.075, 0.14);
-  s.lineTo(0.1115, 0.152);
-  s.absarc(0.095, 0.235, 0.085, -Math.PI / 2 + 0.2, Math.PI, false);
-  s.lineTo(0, 0.235); s.lineTo(0, 0);
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 24 });
-  geo.translate(-0.15, 0, -0.15);
+  s.moveTo(0, 0); s.lineTo(0.4, 0); s.lineTo(0.4, 0.045);
+  s.bezierCurveTo(0.22, 0.05, 0.1, 0.1, 0.1, 0.24);
+  s.lineTo(0.1, 0.285); s.lineTo(0.3, 0.295);
+  s.absarc(0.3, 0.3475, 0.0525, -Math.PI / 2, Math.PI / 2, false);
+  s.lineTo(0.075, 0.4);
+  s.quadraticCurveTo(0, 0.4, 0, 0.33);
+  s.lineTo(0, 0);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: W, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 28 });
+  geo.translate(-0.2, 0, -W / 2);
+  geo.rotateY(-Math.PI / 2);                              // profil : avant = +z, largeur = x
+  const pos = geo.attributes.position, nor = geo.attributes.normal, col = new Float32Array(pos.count * 3);
+  const gray = new THREE.Color('#a9a6a0'), cream = new THREE.Color('#e9d6b6');
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i), z = pos.getZ(i) + 0.2, nz = nor.getZ(i), ny = nor.getY(i);
+    const inner = (z > 0.09 && y < 0.3 && (nz > 0.15 || ny > 0.6)) || (ny < -0.6 && y > 0.27 && y < 0.31);
+    (inner ? cream : gray).toArray(col, i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const bump = canvasTexture(128, 128, (c, w, h) => {
     const id = c.createImageData(w, h);
     for (let i = 0; i < id.data.length; i += 4) { const v = 120 + Math.random() * 100; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
     c.putImageData(id, 0, 0);
   });
   bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
-  const m = new THREE.MeshStandardMaterial({ color: '#8f8e89', roughness: 1, bumpMap: bump, bumpScale: 0.8 });
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, bumpMap: bump, bumpScale: 0.6 });
   const body = mesh(geo, m);
-  body.rotation.y = -Math.PI / 2;
   const glowM = new THREE.MeshBasicMaterial({ color: '#fff3d6', toneMapped: false });
-  const slot = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.07), glowM);
-  slot.rotation.x = Math.PI / 2; slot.position.set(0.0, 0.151, 0.03);
+  const slot = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.17), glowM);
+  slot.rotation.x = Math.PI / 2; slot.position.set(0, 0.288, 0.2 - 0.2 + 0.0);
+  slot.position.z = 0.0;
   g.add(body, slot);
+  slot.position.set(0, 0.2885, -0.2 + 0.2);
   g.userData.glow = glowM;
   return g;
 }
