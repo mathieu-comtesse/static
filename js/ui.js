@@ -1,3 +1,4 @@
+import { PAGES } from './pages.js';
 import { PERSO, PRO, CV } from './data.js';
 
 /* Deux interfaces plein écran ouvertes depuis la pièce 3D :
@@ -95,6 +96,59 @@ const CSS = `
 #xp .sheet .sub{color:#6d6d6d;margin-bottom:10px}
 #xp .sheet fieldset{border:1px solid #d0d0bf;border-radius:4px;margin:10px 0 0;padding:8px 10px}
 #xp .sheet legend{color:#0046d5;padding:0 4px}
+
+#xp .tool{display:flex;gap:6px;padding:3px 6px;border-bottom:1px solid #aca899;background:#ece9d8}
+#xp .tool button{font:inherit;padding:3px 10px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer}
+#xp .tool button:hover{border-color:#a8c3ea;background:#eaf1fd}
+#xp .pg{flex:1;min-height:0;overflow:auto;background:#fff;border-top:1px solid #7f9db9;user-select:text}
+#xp .pgin{padding:0 0 30px;font:12.5px/1.6 Verdana,Tahoma,sans-serif;color:#000;max-width:100%}
+#xp .pgin .case-heading{background:linear-gradient(#245edb,#1941a5);color:#fff;padding:16px 22px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;border-bottom:3px solid #f8b330}
+#xp .pgin .case-number{background:#f8b330;color:#222;font-weight:700;padding:1px 9px;border-radius:10px;font-size:12px}
+#xp .pgin .page-title{margin:0;max-width:none;letter-spacing:0;text-wrap:wrap;animation:none;font:700 20px/1.25 Trebuchet MS,Tahoma,sans-serif;flex:1 1 0;min-width:0;color:#fff;text-shadow:1px 1px 0 #0b2a82}
+#xp .pgin .case-category{flex-basis:100%;color:#cfe0ff;font-size:12px}
+#xp .pgin>article{margin:0}
+#xp .pgin p{margin:10px 22px}
+#xp .pgin .case-description{font-size:13px}
+#xp .pgin video,#xp .pgin img{display:block;max-width:100%;height:auto;border:2px inset #d4d0c8;background:#000}
+#xp .pgin figure{margin:14px 22px;border:1px solid #0831d9;border-radius:7px 7px 0 0;background:#ece9d8;box-shadow:2px 2px 6px rgba(0,0,0,.25);overflow:hidden}
+#xp .pgin figure video,#xp .pgin figure img{width:100%;border:0;border-top:1px solid #7f9db9}
+#xp .pgin figcaption{padding:6px 10px;font-size:11.5px;color:#333}
+#xp .pgin .xw{border:1px solid #0831d9;border-radius:7px 7px 0 0;background:#ece9d8;overflow:hidden;margin:10px 0}
+#xp .pgin .xw__title{display:flex;align-items:center;gap:6px;padding:4px 5px 4px 8px;color:#fff;font-weight:700;font-size:12px;background:linear-gradient(#0997ff,#0053ee 10%,#0050ee 80%,#003dd7)}
+#xp .pgin .xw--grey .xw__title{background:linear-gradient(#9aa4b8,#6f7a90)}
+#xp .pgin .xw__title span:first-child{flex:1}
+#xp .pgin .xw__title span:last-child{display:flex;gap:3px}
+#xp .pgin .xw__title i{width:16px;height:16px;border:1px solid #fff;border-radius:3px;background:linear-gradient(135deg,#6a97f5,#2a62e0)}
+#xp .pgin .xw__title i.x{background:linear-gradient(135deg,#e9886d,#c13c1c)}
+#xp .pgin .xw__body{padding:8px}
+#xp .pgin pre,#xp .pgin .term{margin:0;padding:8px 10px;background:#fff;border:2px inset #d4d0c8;font:11.5px/1.5 "Lucida Console",Consolas,monospace;white-space:pre-wrap;word-break:break-word;color:#000}
+#xp .pgin pre b{color:#003399}
+#xp .pgin .xw__foot{display:flex;justify-content:space-between;gap:10px;padding:3px 8px;border-top:1px solid #aca899;font-size:10.5px;color:#444;background:#ece9d8}
+#xp .pgin .dotgrid,#xp .pgin .before-after{margin:14px 22px;padding:14px 10px 4px;border:1px solid #d0d0bf;border-radius:4px;position:relative;background:#fcfcfe}
+#xp .pgin .dotgrid>.xw{margin:10px 0}
+#xp .pgin .chip{position:absolute;top:-9px;left:12px;background:#fff;padding:0 6px;color:#0046d5;font-size:11.5px}
+#xp .pgin .panel-caption{display:grid;gap:8px;margin:8px 0 10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+#xp .pgin .panel-caption>div{padding:6px 8px;border:1px solid #d0d0bf;background:#fffef6}
+#xp .pgin .outcome-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px;margin-bottom:6px}
+#xp .pgin .outcome-grid>div,#xp .pgin .cost-grid>div{border:1px solid #7f9db9;background:#fff}
+#xp .pgin .outcome-grid h4,#xp .pgin h4{margin:0;padding:4px 9px;font:700 12px Tahoma;background:linear-gradient(90deg,#fff,#c6d3f7);color:#215dc6}
+#xp .pgin .outcome-grid p{margin:0;padding:7px 9px;font-size:12px}
+#xp .pgin .cost-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+#xp .pgin .case-benefit,#xp .pgin .case-gain,#xp .pgin .case-critique{display:flex;flex-direction:column;gap:2px;padding:8px 10px 8px 42px;margin:10px 22px;border:1px solid #c9c291;background:#ffffe1;position:relative}
+#xp .pgin .case-benefit::before,#xp .pgin .case-gain::before,#xp .pgin .case-critique::before{content:"i";position:absolute;left:10px;top:9px;width:20px;height:20px;border-radius:50%;background:#2f6fd6;color:#fff;font:700 13px/20px Georgia,serif;text-align:center}
+#xp .pgin .case-gain::before{background:#3c9a2c;content:"\\2713"}
+#xp .pgin .case-critique::before{background:#e8a317;content:"!";font-family:Tahoma}
+#xp .pgin .case-benefit>span:first-child,#xp .pgin .case-gain>span:first-child,#xp .pgin .case-critique>span:first-child{font-weight:700;color:#003399;font-size:11.5px}
+#xp .pgin .ok{color:#1d7a1d;font-weight:700}#xp .pgin .ko{color:#c01818;font-weight:700}#xp .pgin .dim{color:#777}
+#xp .pgin ol,#xp .pgin ul{margin:8px 22px;padding-left:22px}
+#xp .pgin ol li{margin:4px 0}
+#xp .pgin .flow-diagram{margin:12px 22px}
+#xp .pgin .flow-steps{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+#xp .pgin .flow-steps li{padding:6px 10px;border:1px solid #7f9db9;border-left:6px solid #245edb;background:#f4f8ff}
+#xp .pgin .flow-index{display:inline-block;min-width:22px;margin-right:6px;text-align:center;background:#245edb;color:#fff;border-radius:3px;font-weight:700}
+#xp .pgin a{color:#0000cc}
+#xp .pgin .moso-note,#xp .pgin .pillar-callout,#xp .pgin aside{padding:8px 12px;border:1px solid #c9c291;background:#ffffe1;margin:12px 22px}
+#xp .pgin h3{margin:16px 22px 6px;font:700 15px Trebuchet MS,Tahoma;color:#003399;border-bottom:1px solid #aca899}
 #xp .btnrow{display:flex;gap:8px;justify-content:flex-end}
 #xp .xb{font:inherit;min-width:78px;padding:4px 12px;border:1px solid #003c74;border-radius:3px;background:linear-gradient(#fff,#ecebe5 86%,#d6d0c5);cursor:pointer}
 #xp .xb:hover{box-shadow:inset 0 0 0 2px #f8b330}
@@ -128,6 +182,7 @@ const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls)
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const FOLDER = (id = 'f') => `<svg viewBox="0 0 48 48"><defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9a0"/><stop offset="1" stop-color="#e9b83a"/></linearGradient><linearGradient id="${id}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6d36a"/><stop offset="1" stop-color="#d79c1d"/></linearGradient></defs><path d="M3 11h14l4 4h24v6H3z" fill="#d79c1d"/><path d="M3 18h42l-2 22a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="url(#${id}a)" stroke="#b8860b" stroke-width="1.2"/><path d="M3 18h42v3H3z" fill="url(#${id}b)" opacity=".7"/></svg>`;
+const IE = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#2f9be8" stroke-width="3"/><path d="M4 12h16" stroke="#fff" stroke-width="0"/><ellipse cx="12" cy="12" rx="12" ry="4" transform="rotate(-28 12 12)" fill="none" stroke="#f6c431" stroke-width="1.6"/></svg>`;
 const WINLOGO = `<svg viewBox="0 0 24 24"><path d="M2 5l9-1.4v8H2z" fill="#f25022"/><path d="M12.4 3.4L22 2v9.6h-9.6z" fill="#7fba00"/><path d="M2 13h9v8L2 19.6z" fill="#00a4ef"/><path d="M12.4 13H22v9.2l-9.6-1.4z" fill="#ffb900"/></svg>`;
 const PSX = { x: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#7aa2ff" stroke-width="2"/><path d="M7.5 7.5l9 9M16.5 7.5l-9 9" stroke="#7aa2ff" stroke-width="2.2"/></svg>`, o: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#ff7a7a" stroke-width="2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#ff7a7a" stroke-width="2.2"/></svg>`, t: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#6fe3a0" stroke-width="2"/><path d="M12 6.5l5.2 9H6.8z" fill="none" stroke="#6fe3a0" stroke-width="2.2" stroke-linejoin="round"/></svg>` };
 
@@ -257,18 +312,16 @@ function xpApp(onClose) {
   }
   let explorer = null;
   function openProject(p) {
-    const body = el('div', 'doc');
-    const tabs = [['Général', `<h3>${esc(p.title)}</h3><div class="sub">${esc(p.sub)}</div><p>${esc(p.lead)}</p>${p.team ? `<fieldset><legend>Pour l’équipe</legend>${esc(p.team)}</fieldset>` : ''}`]];
-    if (p.gain) tabs.push(['Gain mesuré', `<h3>Gain mesuré</h3><fieldset><legend>Résultat</legend>${esc(p.gain)}</fieldset>`]);
-    tabs.push(['Détails', `<h3>${esc(p.title)}</h3><fieldset><legend>Propriétés</legend>Type : projet professionnel<br>Dossier : C:\\Projets pro\\${esc(p.title)}<br>Contexte : SNCF Gares &amp; Connexions<br>Page détaillée : ${esc(CV + p.url)}</fieldset><p>La page détaillée contient la démonstration, l’avant/après et les chiffres complets.</p>`]);
-    const bar = el('div', 'tabs'); const sheet = el('div', 'sheet');
-    tabs.forEach(([n, h], i) => { const b = el('button', i ? '' : 'on', n); b.onclick = () => { bar.querySelectorAll('button').forEach((x) => x.classList.remove('on')); b.classList.add('on'); sheet.innerHTML = h; }; bar.append(b); });
-    sheet.innerHTML = tabs[0][1];
-    const row = el('div', 'btnrow', `<button class="xb def" data-o>Ouvrir la page</button><button class="xb" data-c>Fermer</button>`);
-    body.append(bar, sheet, row);
-    const w = win({ title: `Propriétés de ${p.title}`, icon: FOLDER('t' + p.id), w: 560, h: 520, body });
-    row.querySelector('[data-o]').onclick = () => window.open(CV + p.url, '_blank', 'noopener');
-    row.querySelector('[data-c]').onclick = w.close;
+    const pg = PAGES[p.id]; if (!pg) return;
+    const body = el('div'); body.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0';
+    body.innerHTML = `<div class="menu"><span>Fichier</span><span>Edition</span><span>Affichage</span><span>Favoris</span><span>Outils</span><span>?</span></div>
+      <div class="tool"><button data-r>Actualiser</button><button data-o>Ouvrir sur le CV</button></div>
+      <div class="addr">Adresse<div>${esc(pg.url)}</div></div>
+      <div class="pg"><div class="pgin">${pg.html}</div></div>
+      <div class="st"><span>Terminé</span><span>Internet</span></div>`;
+        const w = win({ title: `${p.title} - Microsoft Internet Explorer`, icon: IE, w: 820, h: 600, body, x: Math.max(6, innerWidth * 0.1), y: 20 });
+    body.querySelector('[data-r]').onclick = () => { body.querySelector('.pg').scrollTop = 0; };
+    body.querySelector('[data-o]').onclick = () => window.open(pg.url, '_blank', 'noopener');
   }
   function openExplorer() {
     if (explorer && wins.has([...wins].find((r) => r.el === explorer.el))) { const r = [...wins].find((x) => x.el === explorer.el); focus(r); return; }
