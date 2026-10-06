@@ -44,3 +44,10 @@ footer p{margin:0}
 .bubble.thought i{position:absolute;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgb(0 0 0 / .1)}
 .bubble.thought .t1{width:18px;height:18px;left:50%;bottom:-12px;margin-left:-4px}
 .bubble.thought .t2{width:10px;height:10px;left:50%;bottom:-26px;margin-left:-14px}
+/* fiche de la pochette survolée dans le tiroir du meuble vert */
+.sleeve-card{position:absolute;left:0;top:0;z-index:6;width:200px;padding:8px 10px 8px 70px;min-height:68px;border-radius:12px;background:#fff;color:#1c1a17;box-shadow:0 8px 20px rgb(0 0 0 / .18);pointer-events:none;opacity:0;transition:opacity .12s}
+.sleeve-card.show{opacity:1}
+.sleeve-card i{position:absolute;left:8px;top:8px;width:52px;height:52px;border-radius:4px;image-rendering:auto}
+.sleeve-card b{display:block;font-size:13px;line-height:1.2;font-weight:700}
+.sleeve-card span{display:block;font-size:12px;color:#6f695d;margin-top:2px}
+.sleeve-card em{display:block;font-style:normal;font-size:11px;color:#8a7f6a;margin-top:4px}

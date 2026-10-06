@@ -11,6 +11,7 @@ import { createNav } from './nav.js';
 import { createDirector } from './director.js';
 import { createThought } from './thought.js';
 import { createJukebox } from './jukebox.js';
+import { TRACKS, COVER } from './music.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 
 const DEG = Math.PI / 180;
@@ -51,7 +52,7 @@ export async function createRoom(container, bubbleEl) {
   /* ─── textures ─── */
   const loader = new THREE.TextureLoader();
   const load = (url) => new Promise((res) => loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; res(t); }, undefined, () => res(null)));
-  const [rugTex, paintTex, ekGltf, setuGltf, sofaGltf, jblGltf, falkGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/ds450.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/jbl.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/falkland.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
+  const [rugTex, paintTex, coverTex, ekGltf, setuGltf, sofaGltf, jblGltf, falkGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), load(COVER.file), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/ds450.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/jbl.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/falkland.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
 
   /* ─── mobilier ─── */
   const world = group(); scene.add(world);
@@ -140,7 +141,8 @@ export async function createRoom(container, bubbleEl) {
   const outlet = group(box(0.14, 0.012, 0.14, mat('#ecebe6', { roughness: 0.5 }), 3.82, 0.006, 3.08), box(0.02, 0.014, 0.012, mat('#222'), 3.82, 0.007, 3.05), box(0.02, 0.014, 0.012, mat('#222'), 3.82, 0.007, 3.11));
   add('strip', group(cord, wallPlug, outlet), 0, 0, 0, 0, 0.6, world, 0);
   const usmSet = group();
-  usmSet.add(F.usm());
+  const usmBody = F.usm(); usmSet.add(usmBody);
+  const crate = F.usmDrawer(usmBody.userData.drawerSpec, coverTex, TRACKS, COVER); usmSet.add(crate.root);
   const amp = F.amplifier(); amp.position.set(-0.37, 0.734, 0); usmSet.add(amp);
   const AMPH = 0.085;
   const tt = F.turntable(); inkify(tt, { skip: (o) => o.material.color.getHexString() !== '3f2d22' }); tt.position.set(-0.37, 0.734 + AMPH, 0); usmSet.add(tt);
@@ -317,8 +319,9 @@ export async function createRoom(container, bubbleEl) {
         }
       }
     } else {
+      if (crate.isOpen) { ndcOf(e.clientX, e.clientY); crateHover = crate.indexAt(ray.ray); crate.setSel(crateHover); }
       const near = heroNear(e.clientX, e.clientY);
-      const id = near ? 'hero' : pickIdAt(e.clientX, e.clientY);
+      const id = crateHover >= 0 ? 'sleeve' : near ? 'hero' : pickIdAt(e.clientX, e.clientY);
       if (id !== hovered) { hovered = id; el.style.cursor = near ? 'grab' : id ? 'pointer' : 'grab'; }
     }
   });
@@ -333,8 +336,9 @@ export async function createRoom(container, bubbleEl) {
       hdrag = null; el.style.cursor = 'grab'; return;
     }
     if (drag && drag.moved <= 6 && performance.now() - drag.t < 500) {
+      if (crate.isOpen) { ndcOf(e.clientX, e.clientY); const i = crate.indexAt(ray.ray); if (i >= 0) { crate.setSel(i); playTrack(i); drag = null; return; } }
       const id = pickIdAt(e.clientX, e.clientY);
-      if (id) activate(id);
+      if (id) activate(id); else if (crate.isOpen) openCrate(false);
     }
     drag = null; el.style.cursor = hovered ? 'pointer' : 'grab';
   };
@@ -418,7 +422,16 @@ export async function createRoom(container, bubbleEl) {
 
   const thoughtEl = bubbleEl;
   const thought = createThought(thoughtEl);
-  const jukebox = createJukebox();
+  let chosen = -1;
+  const clip = (t, n) => (t.length > n ? t.slice(0, n - 1) + '\u2026' : t);
+  const jukebox = createJukebox({
+    onTrack: (i) => {
+      crate.setPlaying(i);
+      const t = TRACKS[i], st = stations.usm;
+      st.label = '\u266a ' + clip(t.t, 30) + ' \u00b7 ' + clip(t.a, 18);
+      if (thoughtFor === st) thought.show(st.think.obj, st.label, st.think);
+    },
+  });
   let modelBaseY = null, thoughtFor = null, music = false, bubbleT = 0, spawned = false;
   const speakers = ['speaker1', 'speaker2'].map((id) => items.find((i) => i.id === id));
   const record = tt.userData.record, arm = tt.userData.arm;
@@ -485,8 +498,35 @@ export async function createRoom(container, bubbleEl) {
       if (afterEnter) { const f = afterEnter; afterEnter = null; setTimeout(f, 450); }
     };
   }
-  function setMusic(on) { music = on; if (on) jukebox.start(); else jukebox.stop(); }
-  const goTo = (id, cb) => { afterEnter = cb || null; director.go(stations[id]); };
+  function setMusic(on) {
+    music = on;
+    if (!on) { jukebox.stop(); return; }
+    if (chosen >= 0) { const c = chosen; chosen = -1; jukebox.play(c); } else jukebox.random();
+  }
+  /* bac à pochettes : le tiroir s'ouvre, la caméra s'approche, on feuillette en survolant, un clic joue le titre */
+  let crateHover = -1;
+  const crateFocus = new THREE.Vector3(-1.08, 0.62, -2.05);
+  function openCrate(v) {
+    if (v === crate.isOpen) return;
+    crate.setOpen(v); crateHover = -1;
+    if (appOpen) return;
+    if (v) { tgt.copy(crateFocus); view.tZoom = 6; } else { tgt.copy(home); view.tZoom = 1; }
+  }
+  function playTrack(i) {
+    openCrate(false);
+    if (director.current === stations.usm && director.mode === 'activity') jukebox.play(i);
+    else { chosen = i; goTo('usm'); }
+  }
+  const card = document.createElement('div'); card.className = 'sleeve-card'; container.appendChild(card);
+  let cardFor = -2;
+  window.addEventListener('keydown', (e) => {
+    if (!crate.isOpen || appOpen) return;
+    const cur = crate.sel >= 0 ? crate.sel : jukebox.playing >= 0 ? jukebox.playing : 0;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); crate.setSel(Math.max(0, Math.min(crate.count - 1, cur + (e.key === 'ArrowRight' ? 1 : -1)))); crateHover = crate.sel; }
+    else if (e.key === 'Enter' && crate.sel >= 0) { e.preventDefault(); playTrack(crate.sel); }
+    else if (e.key === 'Escape') openCrate(false);
+  });
+  const goTo = (id, cb) => { afterEnter = cb || null; if (id === 'usm' && crate.isOpen) openCrate(false); director.go(stations[id]); };
 
   let appOpen = false;
   function openApp(kind, pos, zoom) {
@@ -502,6 +542,7 @@ export async function createRoom(container, bubbleEl) {
   const atSofa = () => director.current === stations.sofa && director.mode === 'activity';
   const atDesk = () => director.current === stations.desk && director.mode === 'activity';
   function activate(id) {
+    if (id === 'drawer') { openCrate(!crate.isOpen); return; }
     if (id === 'strip') { retro.setStrip(!retro.stripOn); if (retro.stripOn && atSofa()) retro.powerOn(); return; }
     if (id === 'tv') {
       if (!atSofa()) { goTo('sofa'); return; }
@@ -600,6 +641,17 @@ export async function createRoom(container, bubbleEl) {
       if (d.t < dt * 1.3 + 1e-3 || !d.o) { hero.canTip.getWorldPosition(rain.origin); d.o = rain.origin.clone(); }
       d.m.position.set(d.o.x + Math.sin(d.t * 40) * 0.015, d.o.y - d.t * d.t * 0.85, d.o.z + Math.cos(d.t * 33) * 0.015 + d.t * 0.1);
     }
+    // tiroir à pochettes
+    crate.update(dt, view.az);
+    if (crate.isOpen && crate.sel >= 0 && !appOpen) {
+      if (cardFor !== crate.sel) {
+        cardFor = crate.sel; const t = TRACKS[cardFor], c = 52, col = cardFor % COVER.cols, row = (cardFor / COVER.cols) | 0;
+        card.innerHTML = `<i style="background-image:url('${COVER.file}');background-size:${COVER.cols * c}px ${COVER.rows * c}px;background-position:${-col * c}px ${-row * c}px"></i><b></b><span></span><em>Cliquer pour jouer</em>`;
+        card.querySelector('b').textContent = t.t; card.querySelector('span').textContent = t.a;
+      }
+      crate.topWorld(cardFor, v3); v3.project(camera);
+      card.style.transform = `translate(${((v3.x + 1) / 2) * W}px, ${Math.max(((1 - v3.y) / 2) * H - 8, 130)}px) translate(-50%, -100%)`; card.classList.add('show');
+    } else { card.classList.remove('show'); cardFor = -2; }
     // musique
     record.rotation.y += dt * (music ? 3.4 : 0);
     armAng += ((music ? 0.0 : 0.5) - armAng) * (1 - Math.exp(-dt * 3));
@@ -626,5 +678,5 @@ export async function createRoom(container, bubbleEl) {
 
   const bbox = (id) => { const it = items.find((i) => i.id === id); const b = new THREE.Box3().setFromObject(it.holder); return [b.min.toArray(), b.max.toArray()].map((a) => a.map((v) => +v.toFixed(2))); };
   const toScreen = (x, y, z) => { const q = new THREE.Vector3(x, y, z).project(camera), r = el.getBoundingClientRect(); return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height]; };
-  return { toScreen, bbox, activate, leave, director, nav, stations, floorY, goTo, lamps, view, target: tgt, opts, hero, ritual, tea, cs, scene, camera, renderer };
+  return { crate, toScreen, bbox, activate, leave, director, nav, stations, floorY, goTo, lamps, view, target: tgt, opts, hero, ritual, tea, cs, scene, camera, renderer };
 }

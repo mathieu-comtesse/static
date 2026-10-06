@@ -721,6 +721,7 @@ export function usm() {
   const doors = [];
   for (const cx of [-W / 4, W / 4]) for (const row of [0, 1]) {
     const y = Y0 + H / 4 + row * H / 2;
+    if (cx < 0 && row === 1) { g.userData.drawerSpec = { x: cx, y, z: D / 2 + 0.001, w: W / 2 - 0.022, h: H / 2 - 0.022 }; continue; }   // tiroir du haut à gauche : monté à part (il coulisse)
     const door = group(box(W / 2 - 0.022, H / 2 - 0.022, 0.012, green, 0, 0, 0));
     const knob = cyl(0.011, 0.011, 0.016, chrome, 0, row === 0 ? 0.11 : -0.11, 0.012, 16); knob.rotation.x = Math.PI / 2;
     door.add(knob);
@@ -962,4 +963,66 @@ export function falkland(gltf, k = 0.62, cable = 0.5) {
   g.userData.height = (bb.max.y - bb.min.y) * k;
   g.userData.glow = { color: new THREE.Color(), update(kk) { for (const m of fabric) { m.emissive.set('#ffc98a'); m.emissiveIntensity = 0.85 * kk; } } };
   return g;
+}
+
+/* ───────────── TIROIR DU USM (haut à gauche) : bac à pochettes de vinyle ─────────────
+ * Le tiroir coulisse vers l'avant ; dedans, une pochette par morceau, debout et penchée les unes sur les autres. La pochette visée (sel) se redresse,
+ * monte et se tourne vers la caméra ; ses voisines suivent en courbe de Gauss, comme on feuillette un bac de disques. */
+export function usmDrawer(spec, coverTex, tracks, cover) {
+  const green = mat('#43a12d', { roughness: 0.28, metalness: 0.2 }), chrome = CHROME();
+  const root = group(); root.position.set(spec.x, 0, 0);
+  const dr = group(); root.add(dr);
+  const front = group(box(spec.w, spec.h, 0.012, green, 0, spec.y, spec.z));
+  const knob = cyl(0.011, 0.011, 0.016, chrome, 0, spec.y + 0.11, spec.z + 0.012, 16); knob.rotation.x = Math.PI / 2; front.add(knob);
+  dr.add(front);
+  const DEP = 0.3, yb = spec.y - spec.h / 2 + 0.03, zc = spec.z - DEP / 2, inner = spec.w - 0.03;
+  dr.add(box(inner, 0.006, DEP, green, 0, yb, zc), box(0.006, 0.2, DEP, green, -inner / 2, yb + 0.1, zc), box(0.006, 0.2, DEP, green, inner / 2, yb + 0.1, zc), box(inner, 0.2, 0.006, green, 0, yb + 0.1, spec.z - DEP));
+  const sl = group(); sl.position.set(0, yb + 0.003, zc); dr.add(sl);
+  const N = tracks.length, span = inner - 0.04, pitch = span / (N - 1), SH = 0.27;
+  const paper = new THREE.MeshStandardMaterial({ color: '#efe9dc', roughness: 0.8 });
+  const coverM = new THREE.MeshStandardMaterial({ map: coverTex, roughness: 0.55 });
+  const sleeves = [];
+  for (let i = 0; i < N; i++) {
+    const geo = new THREE.BoxGeometry(0.004, SH, SH), uv = geo.attributes.uv, col = i % cover.cols, row = (i / cover.cols) | 0;
+    for (let k = 0; k < 4; k++) { uv.setXY(k, (col + (1 - uv.getX(k))) / cover.cols, 1 - (row + 1 - uv.getY(k)) / cover.rows); }
+    const m = new THREE.Mesh(geo, [coverM, paper, paper, paper, paper, paper]); m.position.y = SH / 2; m.castShadow = true;
+    const piv = group(m); piv.position.x = -span / 2 + i * pitch; piv.rotation.order = 'YXZ'; piv.rotation.z = 0.45;
+    sl.add(piv); sleeves.push({ piv, rise: 0, tilt: 0.45, yaw: 0 });
+  }
+  root.userData.id = 'drawer';
+  const st = { open: 0, want: 0, sel: -1, playing: -1 };
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3(), loc = new THREE.Vector3();
+  return {
+    root, count: N, tracks,
+    get isOpen() { return st.want === 1; },
+    get sel() { return st.sel; },
+    setOpen(v) { st.want = v ? 1 : 0; if (!v) st.sel = -1; },
+    setSel(i) { st.sel = i < 0 ? -1 : Math.min(N - 1, i); },
+    setPlaying(i) { st.playing = i; },
+    /** index sous un rayon (plan horizontal à hauteur du haut des pochettes), -1 si hors du bac */
+    indexAt(ray) {
+      if (st.open < 0.9) return -1;
+      sl.getWorldPosition(hit); plane.constant = -(hit.y + SH * 0.6);
+      if (!ray.intersectPlane(plane, hit)) return -1;
+      sl.worldToLocal(loc.copy(hit));
+      if (Math.abs(loc.z) > SH / 2 + 0.03 || loc.x < -span / 2 - 0.02 || loc.x > span / 2 + 0.02) return -1;
+      return Math.max(0, Math.min(N - 1, Math.round((loc.x + span / 2) / pitch)));
+    },
+    topWorld(i, out) { return sleeves[i].piv.localToWorld(out.set(0, SH + 0.04, 0)); },
+    update(dt, camAz) {
+      st.open += (st.want - st.open) * (1 - Math.exp(-dt * 6)); if (Math.abs(st.want - st.open) < 0.002) st.open = st.want;
+      dr.position.z = st.open * st.open * (3 - 2 * st.open) * 0.3;
+      const yawTo = Math.atan2(-Math.cos(camAz), Math.sin(camAz));
+      const k = 1 - Math.exp(-dt * 14);
+      for (let i = 0; i < N; i++) {
+        const s = sleeves[i];
+        const focus = st.sel >= 0 ? st.sel : st.playing;
+        let g = focus >= 0 ? Math.exp(-(((i - focus) / 2.4) ** 2)) : 0;
+        if (i === st.playing) g = Math.max(g, 0.85);
+        const top = i === focus ? 1 : i === st.playing ? 0.8 : 0;
+        s.rise += (0.2 * g - s.rise) * k; s.tilt += (0.45 * (1 - g) - s.tilt) * k; s.yaw += (yawTo * top - s.yaw) * k;
+        s.piv.position.y = s.rise; s.piv.rotation.set(0, s.yaw, s.tilt);
+      }
+    },
+  };
 }
