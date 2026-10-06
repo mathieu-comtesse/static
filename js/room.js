@@ -263,6 +263,13 @@ export async function createRoom(container, bubbleEl) {
   const pointers = new Map();
   let drag = null, pinch = 0, hovered = null, hdrag = null;
   const el = renderer.domElement;
+  // Portrait Shupi : suivi du pointeur normalisé (-1..1), comme /info/?portrait.
+  const updatePortraitLook = (e) => {
+    if (e.pointerType === 'touch' || !hero.group.visible || !hero.lookAtPointer) return;
+    const r = el.getBoundingClientRect();
+    hero.lookAtPointer(((e.clientX - r.left) / r.width) * 2 - 1, ((e.clientY - r.top) / r.height) * 2 - 1);
+  };
+  el.addEventListener('pointerleave', () => hero.resetLook?.());
   const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), gp = new THREE.Vector3();
   const ndcOf = (cx, cy) => { const r = el.getBoundingClientRect(); ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); };
   const groundAt = (cx, cy) => { ndcOf(cx, cy); return ray.ray.intersectPlane(groundPlane, gp) ? gp.clone() : null; };
@@ -288,6 +295,7 @@ export async function createRoom(container, bubbleEl) {
     if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); drag = null; hdrag = null; }
   });
   el.addEventListener('pointermove', (e) => {
+    updatePortraitLook(e);
     const p = pointers.get(e.pointerId);
     if (p) {
       const dx = e.clientX - p.x, dy = e.clientY - p.y;
@@ -371,7 +379,7 @@ export async function createRoom(container, bubbleEl) {
   const S = (o) => Object.assign({ face: 'neutral', y: 0 }, o);
   const stations = {
     desk:     S({ label: 'Travailler au bureau', clip: 'Driving_Loop', y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw, approach: [-2.05, 1.05], noFace: true, think: { obj: deskSet, tiltDeg: 24, scale: 1.05, yaw: -52 } }),
-    ekstrem:  S({ label: 'Se poser dans le fauteuil', clip: 'Sitting_Idle_Loop', y: 0.46, face: 'happy', pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw, approach: [1.85, -0.05], noFace: true, think: { obj: ek, tiltDeg: 30 } }),
+    ekstrem:  S({ label: 'Se poser dans le fauteuil', clip: 'Sitting_Idle_Loop', y: 0.39, face: 'happy', pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw, approach: [1.85, -0.05], noFace: true, think: { obj: ek, tiltDeg: 30 } }),
     usm:      S({ label: 'Écouter un vinyle', clip: 'Idle_Loop', face: 'happy', ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true, think: { obj: tt, tiltDeg: 28, scale: 1.1 } }),
     alocasia: S({ label: 'Arroser l\u2019alocasia', clip: 'Idle_Loop', can: true, ov: can, pos: [-2.0, 0, 3.25], yaw: -1.57, think: { obj: alo, tiltDeg: 8, scale: 1.2 } }),
     bonsai:   S({ label: 'Arroser le bonsa\u00ef', clip: 'Idle_Loop', can: true, ov: can, pos: [2.85, 0, 4.55], yaw: -1.57, think: { obj: bonsai, tiltDeg: 20, scale: 1.0 } }),
@@ -411,7 +419,7 @@ export async function createRoom(container, bubbleEl) {
   const thoughtEl = bubbleEl;
   const thought = createThought(thoughtEl);
   const jukebox = createJukebox();
-  let thoughtFor = null, music = false, bubbleT = 0, spawned = false;
+  let modelBaseY = null, thoughtFor = null, music = false, bubbleT = 0, spawned = false;
   const speakers = ['speaker1', 'speaker2'].map((id) => items.find((i) => i.id === id));
   const record = tt.userData.record, arm = tt.userData.arm;
   let armAng = 0.5;
@@ -564,6 +572,13 @@ export async function createRoom(container, bubbleEl) {
     if (hero.group.visible) {
       director.update(dt);
       hero.update(dt, t);
+      // pieds au sol quand il est debout ou marche (le rig importé a sa propre hauteur de bassin)
+      { const cur = director.current, seated = cur && (cur.clip === 'Driving_Loop' || cur.clip === 'Sitting_Idle_Loop' || cur.ritual) && director.mode === 'activity';
+        if (hero.model && director.mode !== 'carried') {
+          if (modelBaseY === null) modelBaseY = hero.model.position.y;
+          if (seated || (director.current && director.mode !== 'activity' && cur && (cur.clip === 'Driving_Loop' || cur.clip === 'Sitting_Idle_Loop'))) hero.model.position.y = modelBaseY;
+          else { hero.model.position.y = modelBaseY; hero.group.updateMatrixWorld(true); const lo = Math.min(hero.wp('ball_l').y, hero.wp('ball_r').y) - hero.group.position.y; hero.model.position.y = modelBaseY - (lo - 0.04); }
+        } }
       const s = hero.group.scale.x; hero.group.scale.setScalar(s + (1 - s) * (1 - Math.exp(-dt * 10)));
       bubbleT += dt;
       const showB = !!thoughtFor && director.mode !== 'carried' && !appOpen && bubbleT > 0.35;
