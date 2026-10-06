@@ -114,7 +114,7 @@ export function createRetroSet() {
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.font = 'bold 56px "Courier New", monospace'; c.fillStyle = '#0a0f3a'; c.fillText('PLAY ?', 164, 108); 
     const blink = Math.sin(t * 5) > -0.4; c.fillStyle = blink ? '#ffffff' : '#9aa6ff'; c.fillText('PLAY ?', 160, 104);
-    c.font = '15px "Courier New", monospace'; c.fillStyle = '#c9d2ff'; c.fillText('CLIQUE SUR LA TELE', 160, 168);
+    c.font = '15px "Courier New", monospace'; c.fillStyle = '#c9d2ff'; c.fillText('CLIQUEZ SUR LA TELE', 160, 168);
     c.fillStyle = '#ffd34a'; c.beginPath(); c.moveTo(60, 98); c.lineTo(60, 122); c.lineTo(80, 110); c.closePath(); c.fill();
     scan(); vignette();
   }

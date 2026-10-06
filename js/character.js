@@ -178,28 +178,39 @@ export async function createCharacter({
   }
 
   const shoes = model.getObjectByName('shoes');
-  const nbShoes = [];
-  // Monte la paire de NB992 sur les os des pieds si le GLB est présent (normalisée à ~29 cm).
+  const nbShoes = [], shoeParts = [];
+  if (shoes) shoes.traverse((o) => { if (o.isMesh && /^shoes_[1-8]$/.test(o.name)) shoeParts.push(o); });   // chaussures d'origine ; shoes_9-12 = chevilles et peau, à garder
+  // Monte la paire de New Balance 992 (assets/nb992.glb : deux nœuds nb_left / nb_right, orteils vers +Z, semelle à y = 0, ~29 cm) sur les os des pieds.
+  // La pose de référence est l'Idle : dans cette pose le pied est à plat, on y place chaque chaussure puis on la fige dans le repère de l'os.
   const attachNB992 = () => {
-    if (!nb992Gltf || !bones.foot_l || !bones.foot_r) return false;
-    const makeShoe = () => {
-      const root = nb992Gltf.scene.clone(true); root.updateMatrixWorld(true);
-      const bb = new THREE.Box3().setFromObject(root), sz = bb.getSize(new THREE.Vector3()), ctr = bb.getCenter(new THREE.Vector3());
-      root.position.sub(ctr);
-      if (sz.z > sz.x && sz.z >= sz.y) root.rotation.y = Math.PI / 2; else if (sz.y > sz.x && sz.y > sz.z) root.rotation.z = -Math.PI / 2;
-      root.updateMatrixWorld(true);
-      const sz2 = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
-      root.scale.multiplyScalar(0.29 / Math.max(sz2.x, sz2.z, 1e-4));
-      root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-      return root;
-    };
-    const L = makeShoe(), R = makeShoe();
-    L.position.set(0.075, -0.025, 0); R.position.set(0.075, -0.025, 0); L.rotation.z += Math.PI;
-    bones.foot_l.add(L); bones.foot_r.add(R); nbShoes.push(L, R);
-    if (shoes) shoes.visible = false;
-    return true;
+    if (!nb992Gltf || !bones.foot_l || !bones.foot_r || !clips.Idle_Loop) return false;
+    const tm = new THREE.AnimationMixer(group), act = tm.clipAction(clips.Idle_Loop); act.play(); tm.update(0); group.updateMatrixWorld(true);
+    const ground = Math.min(bones.ball_l.getWorldPosition(new THREE.Vector3()).y, bones.ball_r.getWorldPosition(new THREE.Vector3()).y) - 0.04;
+    for (const [side, bone, ball] of [['left', bones.foot_l, bones.ball_l], ['right', bones.foot_r, bones.ball_r]]) {
+      const src = nb992Gltf.scene.getObjectByName('nb_' + side); if (!src) continue;
+      const shoe = src.clone(true);
+      shoe.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; } });
+      const f0 = bone.getWorldPosition(new THREE.Vector3()), b0 = ball.getWorldPosition(new THREE.Vector3());
+      const fwd = b0.clone().sub(f0); fwd.y = 0; fwd.normalize();
+      const x = new THREE.Vector3(0, 1, 0).cross(fwd).normalize();
+      const world = new THREE.Matrix4().makeBasis(x, new THREE.Vector3(0, 1, 0), fwd).setPosition(f0.x + fwd.x * 0.07, ground, f0.z + fwd.z * 0.07);
+      const local = bone.matrixWorld.clone().invert().multiply(world);
+      shoe.matrixAutoUpdate = true; local.decompose(shoe.position, shoe.quaternion, shoe.scale);
+      bone.add(shoe); nbShoes.push(shoe);
+      // chaussette blanche : les jambes du rig s'arrêtaient au sommet des bottes d'origine ; elle comble l'espace entre la basket et le bas du pantalon
+      const knee = bone.parent.getWorldPosition(new THREE.Vector3()), dir = knee.clone().sub(f0).normalize();
+      const A = new THREE.Vector3(f0.x, ground + 0.07, f0.z), len = 0.34;
+      const y = dir.clone(), xs = new THREE.Vector3(1, 0, 0).cross(y).normalize(), zs = y.clone().cross(xs);
+      const sw = new THREE.Matrix4().makeBasis(xs, y, zs).setPosition(A.x + dir.x * len / 2, A.y + dir.y * len / 2, A.z + dir.z * len / 2);
+      const sock = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.048, len, 14), new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.95 }));
+      sock.castShadow = true; sock.frustumCulled = false;
+      bone.matrixWorld.clone().invert().multiply(sw).decompose(sock.position, sock.quaternion, sock.scale);
+      bone.add(sock); nbShoes.push(sock);
+    }
+    act.stop(); tm.stopAllAction(); tm.uncacheRoot(group);
+    shoeParts.forEach((o) => { o.visible = false; });
+    return nbShoes.length === 2;
   };
-  attachNB992();
   const { can, canTip } = makeWateringCan(); group.add(can);
 
   // Retarget les 31 actions de la bibliothèque (rig Quaternius, axe d'os +Y) sur le rig FBX importé (axe d'os +X) : les deux squelettes n'ont pas les mêmes repères
@@ -268,6 +279,7 @@ export async function createCharacter({
     for (const a of animGltf.animations) clips[a.name] = retarget(a);
   }
   for (const a of characterGltf.animations || []) clips[a.name] = a.clone();
+  attachNB992();
 
   const mixer = new THREE.AnimationMixer(group);
   let action = null, activeClipName = 'Idle_Loop', base = 'neutral', blink = 0, nextBlink = 2, flash = 0, flashKind = null, talking = false;

@@ -247,7 +247,7 @@ function retroApp(onClose) {
     view = 'play'; const g = PERSO[idx];
     scr.innerHTML = `<div class="head"><div><h1>${esc(g.n)}</h1><div class="sub">${esc(g.genre).toUpperCase()} · EN COURS</div></div><button class="alt" data-k="back">◀ RETOUR</button></div>
       <div class="play"><iframe title="${esc(g.n)}" allow="autoplay; fullscreen" src="${CV}${g.url}"></iframe>
-      <div class="sub">SI L’ECRAN RESTE NOIR, OUVRE LE JEU DANS UN ONGLET : <a style="color:#ffd34a" target="_blank" rel="noopener" href="${CV}${g.url}">${CV}${g.url}</a></div></div>${foot([['o', 'RETOUR AU MENU', 'back']])}`;
+      <div class="sub">SI L’ECRAN RESTE NOIR, OUVREZ LE JEU DANS UN ONGLET : <a style="color:#ffd34a" target="_blank" rel="noopener" href="${CV}${g.url}">${CV}${g.url}</a></div></div>${foot([['o', 'RETOUR AU MENU', 'back']])}`;
     bind();
   }
   window.addEventListener('keydown', key);

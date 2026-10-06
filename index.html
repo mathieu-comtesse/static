@@ -4,53 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mathieu Comtesse · Projets et automatisation</title>
-<meta name="description" content="Automatisation, Power BI, Power Automate, extraction PDF et amélioration continue.">
+<meta name="description" content="Lire, contrôler, automatiser. Des heures rendues aux équipes : audit des processus, Power BI, Power Automate, extraction PDF.">
 <meta name="theme-color" content="#f5f7fb">
-<script>{const n=new Date(),m=n.getHours()*60+n.getMinutes();document.documentElement.dataset.theme=(m>=1320||m<270)?'dark':'light'}</script>
+<script>{const n=new Date(),m=n.getHours()*60+n.getMinutes();document.documentElement.dataset.theme=(m>=1320||m<270)?'dark':'light';document.documentElement.classList.add('js')}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23e8452b%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-size=%2716%27 font-family=%27sans-serif%27 font-weight=%27700%27 text-anchor=%27middle%27 fill=%27white%27%3EMC%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/"}}</script>
 <script type="module" src="js/main.js"></script>
 </head>
-<body>
+<body class="page-home">
 <nav class="nav" aria-label="Navigation">
   <a class="btn" href="#work">Projets</a>
-  <a class="btn" href="#info">Info</a>
+  <a class="btn" href="info.html">Info</a>
   <button class="btn theme" id="theme" type="button" aria-label="Passer en mode sombre"></button>
 </nav>
+<header class="shupi-header">
+  <section class="room" id="room" aria-label="Appartement interactif de Mathieu">
+    <div class="bubble" id="bubble" aria-live="polite"></div>
+    <p class="hint">Le personnage vit dans la pièce : laissez-le se déplacer, ou attrapez-le pour choisir une activité.</p>
+  </section>
+</header>
 <main>
-<section class="intro">
-  <p class="kicker">Mathieu Comtesse · MQSE × numérique</p>
-  <h1>Je transforme les tâches répétitives en outils qui travaillent vraiment.</h1>
-  <p class="intro-copy">Audit des processus, automatisation, Power BI, Power Automate et extraction documentaire. Le résultat se mesure en temps rendu, en erreurs évitées et en données enfin exploitables.</p>
+<section class="hero reveal">
+  <p class="intro-line"><span>M2 MQSE · Sorbonne Paris Nord</span><span class="dots" aria-hidden="true"></span><span>Alternance · SNCF Gares &amp; Connexions</span></p>
+  <h1>Lire, contrôler, automatiser.<br>Des heures rendues aux<br><em class="flip" data-a="équipes." data-b="agents.">équipes.</em></h1>
+  <p class="hero-pitch">J’audite vos processus métier, j’en retire le superflu, puis j’automatise ce qui doit l’être : outil HTML sur mesure, flux Power Automate ou assistant LLM.</p>
+  <div class="hero-links"><a class="btn dark" href="#work">Voir les projets</a><a class="btn" href="mailto:mathieu@comtesse.me">Me contacter</a></div>
+  <p class="hero-meta">Yellow Belt Lean Six Sigma · ISO 9001 / 45001 / 14001 / 27001 · Power BI · Power Automate · Extraction PDF</p>
 </section>
-
-<section class="room" id="room" aria-label="Appartement interactif de Mathieu">
-  <div class="bubble" id="bubble" aria-live="polite"></div>
-  <p class="hint">Le personnage vit dans la pièce : laisse-le se déplacer ou attrape-le pour choisir une activité.</p>
-</section>
-
-<section class="work" id="work">
-<header class="section-head"><span>Projets sélectionnés</span><p>Fais défiler horizontalement</p></header>
-<div class="project-rail">
-<a class="project-card" href="https://mathieu-comtesse.github.io/cv-mathieu_comtesse/projet-studio.html"><span>01 · Studio d’extracteurs</span><strong class="gain">3,2–6,9 k€</strong><b>de temps de développement évité par famille</b><p>Un extracteur opérationnel en quelques heures au lieu de plusieurs jours.</p></a>
-<a class="project-card" href="https://mathieu-comtesse.github.io/cv-mathieu_comtesse/projet-1.html"><span>02 · CERFA v3</span><strong class="gain">50 k€</strong><b>de pénalités identifiées</b><p>Lots de CERFA et attestations, doublons, écarts et retards rendus visibles.</p></a>
-<a class="project-card" href="https://mathieu-comtesse.github.io/cv-mathieu_comtesse/projet-vre.html"><span>03 · Extracteur VRE</span><strong class="gain">25 min</strong><b>gagnées environ par rapport</b><p>7 000 à 10 000 rapports annuels rendus exploitables sans comptage manuel.</p></a>
-<a class="project-card" href="https://mathieu-comtesse.github.io/cv-mathieu_comtesse/projet-4.html"><span>04 · Power BI PP &amp; MOSO</span><strong class="gain">≈ 2 h</strong><b>rendues chaque semaine</b><p>Plans, PDF et échéances retrouvés en quelques secondes.</p></a>
-<a class="project-card" href="https://mathieu-comtesse.github.io/cv-mathieu_comtesse/projets-universitaires.html"><span>05 · Projet universitaire</span><strong class="gain">7 × ISO</strong><b>chapitres transformés en expérience jouable</b><p>Village Talas : jeu sérieux 3D consacré à l’ISO 45001 et à l’apprentissage par l’action.</p></a>
+<div id="work">
+  <div id="projects"></div>
+  <section class="more" id="more"></section>
 </div>
-</section>
-
-<section class="info" id="info">
-<p class="kicker">Info</p>
-<h2>Je travaille à l’intersection du métier, de la qualité et du produit numérique.</h2>
-<div class="info-grid">
-<article><span>Positionnement</span><p>Assistant Sécurité &amp; Production chez SNCF Gares &amp; Connexions, en Master 2 MQSE.</p></article>
-<article><span>Méthode</span><p>Comprendre le flux, retirer le superflu, automatiser ce qui reste, rendre le résultat lisible.</p></article>
-<article><span>Outils</span><p>Power BI, Power Automate, HTML/JavaScript, extraction PDF, VM et assistants LLM.</p></article>
-</div>
-<div class="actions"><a class="btn dark" href="mailto:mathieu@comtesse.me">Me contacter</a><a class="btn" href="https://github.com/mathieu-comtesse">GitHub</a></div>
-</section>
 </main>
 <footer><p>Mathieu Comtesse © 2026</p><details class="credits">
     <summary>Crédits</summary>

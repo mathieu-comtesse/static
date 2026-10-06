@@ -218,12 +218,13 @@ export async function createRoom(container, bubbleEl) {
   const DEF = { az: 36 * DEG, el: 26 * DEG, zoom: 1 };
   let fit = 1, W = 1, H = 1;
 
+  let scrollOff = 0, scrollT = 0;                                  // la caméra baisse quand l'en-tête défile (comme la scène de référence)
   function orient() {
-    const r = 40;
+    const r = 40, ev = view.el - scrollOff * 12 * DEG;
     camera.position.set(
-      target.x + Math.sin(view.az) * Math.cos(view.el) * r,
-      target.y + Math.sin(view.el) * r,
-      target.z + Math.cos(view.az) * Math.cos(view.el) * r);
+      target.x + Math.sin(view.az) * Math.cos(ev) * r,
+      target.y + Math.sin(ev) * r,
+      target.z + Math.cos(view.az) * Math.cos(ev) * r);
     camera.lookAt(target);
     camera.updateMatrixWorld(true);
   }
@@ -401,17 +402,17 @@ export async function createRoom(container, bubbleEl) {
   const deskYaw = -Math.PI / 2 + 0.15, ekYaw = -0.45;
   const can = { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 };
   const TVBOX = { obj: retro.group };
-  let afterEnter = null;
+  let afterEnter = null, actSince = 0, actMode = '';
   const S = (o) => Object.assign({ face: 'neutral', y: 0 }, o);
   const stations = {
     desk:     S({ label: 'Travailler au bureau', clip: 'Driving_Loop', y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw, approach: [-2.05, 1.05], noFace: true, think: { obj: deskSet, tiltDeg: 24, scale: 1.05, yaw: -52 } }),
     ekstrem:  S({ label: 'Se poser dans le fauteuil', clip: 'Sitting_Idle_Loop', y: 0.39, face: 'happy', pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw, approach: [1.85, -0.05], noFace: true, think: { obj: ek, tiltDeg: 30 } }),
     usm:      S({ label: 'Écouter un vinyle', clip: 'Idle_Loop', face: 'happy', ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true, think: { obj: tt, tiltDeg: 28, scale: 1.1 } }),
-    alocasia: S({ label: 'Arroser l\u2019alocasia', clip: 'Idle_Loop', can: true, ov: can, pos: [-2.0, 0, 3.25], yaw: -1.57, think: { obj: alo, tiltDeg: 8, scale: 1.2 } }),
-    bonsai:   S({ label: 'Arroser le bonsa\u00ef', clip: 'Idle_Loop', can: true, ov: can, pos: [2.85, 0, 4.55], yaw: -1.57, think: { obj: bonsai, tiltDeg: 20, scale: 1.0 } }),
-    dracaena: S({ label: 'Arroser le dragonnier', clip: 'Idle_Loop', can: true, ov: can, pos: [2.2, 0, -1.95], yaw: 2.27, think: { obj: dra, tiltDeg: 8, scale: 1.2 } }),
+    alocasia: S({ label: 'Arroser l\u2019alocasia', clip: 'Idle_Loop', maxMs: 12000, can: true, ov: can, pos: [-2.0, 0, 3.25], yaw: -1.57, think: { obj: alo, tiltDeg: 8, scale: 1.2 } }),
+    bonsai:   S({ label: 'Arroser le bonsa\u00ef', clip: 'Idle_Loop', maxMs: 12000, can: true, ov: can, pos: [2.85, 0, 4.55], yaw: -1.57, think: { obj: bonsai, tiltDeg: 20, scale: 1.0 } }),
+    dracaena: S({ label: 'Arroser le dragonnier', clip: 'Idle_Loop', maxMs: 12000, can: true, ov: can, pos: [2.2, 0, -1.95], yaw: 2.27, think: { obj: dra, tiltDeg: 8, scale: 1.2 } }),
     sofa:     S({ label: 'Jouer \u00e0 la console', clip: 'Driving_Loop', y: 0.2, face: 'happy', pos: [0.35, 0, 4.42], yaw: Math.PI, approach: [0.35, 3.75], noFace: true, tv: true, think: TVBOX }),
-    cha:      S({ label: 'C\u00e9r\u00e9monie du th\u00e9', ritual: true, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0, approach: [CS.x, TEA.z], think: { obj: tea, tiltDeg: 32, scale: 1.0 } }),
+    cha:      S({ label: 'C\u00e9r\u00e9monie du th\u00e9', ritual: true, maxMs: 34000, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0, approach: [CS.x, TEA.z], think: { obj: tea, tiltDeg: 32, scale: 1.0 } }),
   };
   for (const st of Object.values(stations)) if (!st.approach) st.approach = nav.nearest(st.pos[0], st.pos[2]);
   stations.chair = stations.desk; stations.stool = stations.bonsai; stations.shoes = stations.cha; stations.chashitsu = stations.cha;
@@ -669,7 +670,7 @@ export async function createRoom(container, bubbleEl) {
     const kv = 1 - Math.exp(-dt * 10);
     target.lerp(tgt, kv);
     view.az += (view.tAz - view.az) * kv; view.el += (view.tEl - view.el) * kv; view.zoom += (view.tZoom - view.zoom) * kv;
-    orient(); applyFrustum();
+    scrollOff += (scrollT - scrollOff) * kv; orient(); applyFrustum();
     // personnage
     if (ritual.state.active) ritual.update(dt);
     cs.update(dt, t, night); retro.update(dt);
@@ -678,6 +679,9 @@ export async function createRoom(container, bubbleEl) {
       const drunk = ud.bowl.userData.tea.visible ? 1 : 0; updateSteam(ud.sBowl, t, 0.3, 0.1, drunk); updateSteam(ud.sKama, t + 1.3, 0.34, 0.13, 0.8); }
     if (!spawned && since > 1.6) { spawned = true; director.spawn(0.9, 0.7, 0.7); hero.group.visible = true; hero.group.scale.setScalar(0.01); poof(hero.group.position); }
     if (hero.group.visible) {
+      // minuteur : aucune activité ne dure indéfiniment (arrosage 12 s, assis 25 s, thé 34 s), même déclenchée par l'utilisateur
+      if (director.mode !== actMode) { if (director.mode === 'activity') actSince = performance.now(); actMode = director.mode; }
+      if (director.mode === 'activity' && !appOpen && !crate.isOpen && director.current && performance.now() - actSince > (director.current.maxMs || 25000)) { director.stand(); actSince = performance.now(); }
       autonomousTick();
       director.update(dt);
       hero.update(dt, t);
@@ -748,5 +752,5 @@ export async function createRoom(container, bubbleEl) {
 
   const bbox = (id) => { const it = items.find((i) => i.id === id); const b = new THREE.Box3().setFromObject(it.holder); return [b.min.toArray(), b.max.toArray()].map((a) => a.map((v) => +v.toFixed(2))); };
   const toScreen = (x, y, z) => { const q = new THREE.Vector3(x, y, z).project(camera), r = el.getBoundingClientRect(); return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height]; };
-  return { pauseAutonomy, crate, toScreen, bbox, activate, leave, director, nav, stations, floorY, goTo, lamps, view, target: tgt, opts, hero, ritual, tea, cs, scene, camera, renderer };
+  return { setScroll: (p) => { scrollT = p; }, pauseAutonomy, crate, toScreen, bbox, activate, leave, director, nav, stations, floorY, goTo, lamps, view, target: tgt, opts, hero, ritual, tea, cs, scene, camera, renderer };
 }

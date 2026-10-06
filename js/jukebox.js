@@ -2,8 +2,10 @@ import { TRACKS } from './music.js';
 
 /* Juke-box : le lecteur intégré Spotify (iFrame API) joue un titre choisi ou tiré au hasard dans TRACKS, puis enchaîne tout seul au hasard.
  * Sans connexion, Spotify donne des extraits de 30 s ; connecté dans le navigateur, les titres entiers. */
+const MAX_AUTO = 3;   // après 3 titres enchaînés seuls, la musique s'arrête si personne ne la relance
+
 export function createJukebox({ onTrack, onState } = {}) {
-  let bag = [], last = -1, ctrl = null, loading = false, on = false, want = null, paused = false, lastPos = 0, endAt = 0;
+  let auto = 0, bag = [], last = -1, ctrl = null, loading = false, on = false, want = null, paused = false, lastPos = 0, endAt = 0;
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;right:16px;bottom:16px;width:min(320px,calc(100vw - 32px));z-index:30;display:none;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.25)';
   const slot = document.createElement('div'); box.append(slot); document.body.append(box);
@@ -29,20 +31,21 @@ export function createJukebox({ onTrack, onState } = {}) {
           // fin de morceau : le lecteur se remet à 0 en pause (ou s'arrête tout près de la durée) -> on enchaîne un autre titre au hasard
           if (!d.isPaused) { lastPos = d.position; paused = false; emit(); return; }
           const ended = lastPos > 4000 && (d.position < 1200 || (d.duration && d.position >= d.duration - 1500));
-          if (ended && performance.now() - endAt > 3000) { go(nextRandom()); return; }
+          if (ended && performance.now() - endAt > 3000) { if (++auto >= MAX_AUTO) { api.stop(); return; } go(nextRandom()); return; }
           if (!paused && d.position > 1200) { paused = true; emit(); }
         });
       });
     };
     const sc = document.createElement('script'); sc.src = 'https://open.spotify.com/embed/iframe-api/v1'; sc.async = true; document.body.append(sc);
   }
-  return {
+  const api = {
     get playing() { return on ? want : -1; },
     get isOn() { return on; },
-    random() { on = true; box.style.display = 'block'; go(nextRandom()); init(); },
+    random() { auto = 0; on = true; box.style.display = 'block'; go(nextRandom()); init(); },
     next() { this.random(); },
-    play(i) { on = true; box.style.display = 'block'; go(i); init(); },
-    toggle() { if (!on) { this.random(); return; } if (ctrl) { ctrl.togglePlay(); paused = !paused; emit(); } },
+    play(i) { auto = 0; on = true; box.style.display = 'block'; go(i); init(); },
+    toggle() { auto = 0; if (!on) { this.random(); return; } if (ctrl) { ctrl.togglePlay(); paused = !paused; emit(); } },
     stop() { on = false; box.style.display = 'none'; paused = false; if (ctrl) ctrl.pause(); emit(); },
   };
+  return api;
 }
