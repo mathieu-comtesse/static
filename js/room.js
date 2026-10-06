@@ -45,7 +45,7 @@ export async function createRoom(container, bubbleEl) {
   /* ─── textures ─── */
   const loader = new THREE.TextureLoader();
   const load = (url) => new Promise((res) => loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; res(t); }, undefined, () => res(null)));
-  const [rugTex, paintTex, ekGltf, setuGltf, sofaGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/ds450.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
+  const [rugTex, paintTex, ekGltf, setuGltf, sofaGltf, jblGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/ds450.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/jbl.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
 
   /* ─── mobilier ─── */
   const world = group(); scene.add(world);
@@ -90,12 +90,11 @@ export async function createRoom(container, bubbleEl) {
 
   const bench = F.bench(); add('bench', bench, -3.1, 2.15, 0, 0, 0.3);
   const bonsai = F.bonsai(); inkify(bonsai, { skip: (o) => !['9b9a92'].includes(o.material.color.getHexString()) }); add('bonsai', bonsai, -3.1, 2.15, 0.5, 0.28, 0.42);
-  const SPK = 1.7;                           // enceintes posées au sol, de part et d'autre du USM
-  const sp1 = F.speaker(false, false), sp2 = F.speaker(true, false); inkify(sp1, { skip: (o) => o.material.map }); inkify(sp2, { skip: (o) => o.material.map });
+  const sp1 = F.speakerFromGltf(jblGltf, 1.15), sp2 = F.speakerFromGltf(jblGltf, 1.15);
   const alo = F.alocasia(); inkify(alo, { skip: (o) => !(o.material.map && o.material.map.image && o.material.map.image.width === 128 && o.material.side === THREE.DoubleSide) });
   add('alocasia', alo, -2.05, -1.4, 0.6, 0, 0.9).scale.setScalar(0.85);
   add('sofa', F.sofaFrom(sofaGltf, 2.2, { recline: 0, slide: 0, lateral: 0 }), 0.35, 4.55, Math.PI, 0, 0.95);
-  add('speaker1', sp1, -1.85, -2.4, 0.2, 0, 0.5).scale.setScalar(SPK);
+  add('speaker1', sp1, -1.85, -2.4, 0.2, 0, 0.5);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
   const ek = F.ekstremFrom(ekGltf); add('ekstrem', ek, 2.3, -0.95, -0.45, 0, 0.35).scale.setScalar(EKS);
@@ -108,7 +107,10 @@ export async function createRoom(container, bubbleEl) {
 
   const usmSet = group();
   usmSet.add(F.usm());
-  const tt = F.turntable(); inkify(tt, { skip: (o) => o.material.color.getHexString() !== '3f2d22' }); tt.position.set(-0.37, 0.734, 0); usmSet.add(tt);
+  const amp = F.amplifier(); amp.position.set(-0.37, 0.734, 0); usmSet.add(amp);
+  const AMPH = 0.085;
+  const tt = F.turntable(); inkify(tt, { skip: (o) => o.material.color.getHexString() !== '3f2d22' }); tt.position.set(-0.37, 0.734 + AMPH, 0); usmSet.add(tt);
+  const rca = F.rcaCables(-0.37, -0.158, 0.734, 0.734 + 0.05); usmSet.add(rca);
   const cl = F.concreteLamp(); inkify(cl, { skip: (o) => o.material.vertexColors }); cl.scale.setScalar(0.6); add('beton', cl, 0.44, 0.0, 0, 0.734, 0, usmSet);
   add('usm', usmSet, -0.7, -2.4, 0, 0, 0.45);
   mkLamp('beton', cl.userData.glow, new THREE.PointLight('#ffe9c4', 0, 2.5, 2), '#fff3d6', '#8a8780');
@@ -120,7 +122,7 @@ export async function createRoom(container, bubbleEl) {
 
   if (paintTex) { const pt = add('painting', F.painting(paintTex), -0.7, -2.95, 0, 1.35, 0.7, world, 0); pt.scale.setScalar(1.3); }
   const dra = F.dracaena(); inkify(dra, { skip: (o) => o.material.color.getHexString() !== 'b3a893' }); add('dracaena', dra, 2.85, -2.45, 0.3, 0, 0.65);
-  add('speaker2', sp2, 0.4, -2.4, -0.2, 0, 0.75).scale.setScalar(SPK);
+  add('speaker2', sp2, 0.4, -2.4, -0.2, 0, 0.75);
   add('shelf1', F.shelf(), 4.6, -1.3, Math.PI / 2, 0, 0.8);
 
   // positions des sources lumineuses (repère monde)

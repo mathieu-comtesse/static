@@ -584,34 +584,48 @@ export function ekstremFrom(gltf) {
 
 /* ───────────── LAMPADAIRE EN ARC ───────────── */
 export function arcLamp() {
-  /* Lampadaire en arc sur socle de marbre blanc veiné (bloc 0,26 × 0,2 × 0,38 m) ; deux tiges chromées parallèles, tête rectangulaire émettrice. */
+  /* Lampadaire Gesto Terra (d'après les photos) : socle en marbre noir veiné (0,34 × 0,40 × 0,055 m, arêtes du dessus arrondies, poignée
+   * ovale dans le flanc), deux tubes chromés parallèles (écart 9 cm) qui plongent dans le socle par un coude, une patte de liaison à mi-hauteur,
+   * un grand arc, et une tête noire laquée mince à tranche arrondie et rainurée. Avant du socle = +x (côté de l'arc). */
   const g = group();
-  const chrome = mat('#b4b8be', { metalness: 0.9, roughness: 0.28 }), black = mat('#16171a', { roughness: 0.4 });
-  const marbleTex = canvasTexture(256, 256, (c, w, h) => {
-    c.fillStyle = '#efede8'; c.fillRect(0, 0, w, h);
-    const r = rng(12);
-    c.lineCap = 'round';
-    for (let i = 0; i < 14; i++) {
-      c.strokeStyle = `rgba(${r() > 0.5 ? '120,124,132' : '160,160,166'},${0.25 + r() * 0.35})`; c.lineWidth = 0.6 + r() * 2;
-      c.beginPath(); let x = r() * w, y = 0; c.moveTo(x, y);
-      while (y < h) { x += (r() - 0.5) * 36; y += 14 + r() * 18; c.lineTo(x, y); }
+  const chrome = new THREE.MeshStandardMaterial({ color: '#d8dbe0', metalness: 1, roughness: 0.16, envMapIntensity: 2.6 });
+  const black = new THREE.MeshStandardMaterial({ color: '#0d0e10', roughness: 0.22, metalness: 0.1, envMapIntensity: 1.6 });
+  const r = rng(12);
+  const veins = canvasTexture(512, 512, (c, w, h) => {
+    const gr = c.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#0a0b0d'); gr.addColorStop(0.5, '#15171a'); gr.addColorStop(1, '#0b0c0e'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (let i = 0; i < 46; i++) {                                               // nervures blanches et grises
+      c.strokeStyle = `rgba(${200 + (r() * 55) | 0},${205 + (r() * 50) | 0},${210 + (r() * 45) | 0},${0.12 + r() * 0.5})`; c.lineWidth = 0.5 + r() * 2.2;
+      c.beginPath(); let x = r() * w, y = r() * h, a = r() * 6.28; c.moveTo(x, y);
+      for (let k = 0; k < 7 + (r() * 8 | 0); k++) { a += (r() - 0.5) * 1.1; x += Math.cos(a) * (14 + r() * 38); y += Math.sin(a) * (14 + r() * 38); c.lineTo(x, y); }
       c.stroke();
     }
+    for (let i = 0; i < 120; i++) { c.fillStyle = `rgba(230,235,235,${0.25 + r() * 0.5})`; c.beginPath(); c.ellipse(r() * w, r() * h, 0.6 + r() * 2.2, 0.5 + r() * 1.4, r() * 3, 0, 6.3); c.fill(); }   // fossiles
+    for (let i = 0; i < 9; i++) { c.strokeStyle = 'rgba(210,205,200,0.3)'; c.lineWidth = 0.6; c.beginPath(); const x = r() * w, y = r() * h; c.moveTo(x, y); c.lineTo(x + 60 + r() * 120, y + (r() - 0.5) * 24); c.stroke(); }          // rayures
   });
-  const marble = new THREE.MeshStandardMaterial({ map: marbleTex, roughness: 0.25, metalness: 0.05, emissive: '#ffffff', emissiveIntensity: 0.12, emissiveMap: marbleTex });
-  g.add(rbox(0.26, 0.2, 0.38, 0.012, marble, 0, 0.1, 0));
-  g.add(cyl(0.02, 0.022, 0.012, black, 0, 0.206, 0, 14));
-  const path = [[0, 0.2, 0], [0, 1.1, 0], [0.04, 1.75, 0], [0.3, 2.1, 0], [0.8, 2.22, 0], [1.3, 2.2, 0]];
-  for (const dz of [-0.016, 0.016]) g.add(tube(path.map((p) => [p[0], p[1], p[2] + dz]), 0.011, chrome, { segs: 70, radial: 10 }));
+  veins.wrapS = veins.wrapT = THREE.RepeatWrapping; veins.repeat.set(1.5, 1.5);
+  const marble = new THREE.MeshStandardMaterial({ map: veins, roughness: 0.2, metalness: 0.15, envMapIntensity: 1.8 });
+  const BX = 0.06, BZ = 0.40, BD = 0.34, BH = 0.055;
+  g.add(rbox(BD, BH, BZ, 0.02, marble, BX, BH / 2, 0));
+  const slot = rbox(0.015, 0.02, 0.1, 0.007, mat('#050506', { roughness: 0.9 }), BX + BD / 2 + 0.001, 0.028, 0.12); g.add(slot);          // poignée dans le flanc avant
+  const dz = 0.045, TR = 0.0085;
+  const path = [[-0.045, BH - 0.006, 0], [-0.03, BH + 0.03, 0], [0, BH + 0.1, 0], [0, 1.1, 0], [0.01, 1.62, 0], [0.12, 1.93, 0], [0.45, 2.15, 0], [0.85, 2.21, 0], [1.15, 2.2, 0]];
+  for (const z of [-dz, dz]) g.add(tube(path.map((p) => [p[0], p[1], p[2] + z]), TR, chrome, { segs: 110, radial: 14 }));
+  // patte de liaison à mi-hauteur
+  g.add(rbox(0.012, 0.045, 2 * dz + 0.02, 0.003, mat('#b7bbc0', { metalness: 0.9, roughness: 0.35 }), 0, 1.4, 0));
+  for (const z of [-dz, dz]) g.add(cyl(TR * 1.35, TR * 1.35, 0.03, chrome, 0, 1.4, z, 14));
+  // tête noire : plaque mince, dessus bombé, rainure sur la tranche du bout, tubes engagés dans son talon
   const head = group();
-  head.add(rbox(0.3, 0.025, 0.16, 0.012, black, 0, 0, 0));
+  const HL = 0.36, HW = 0.115, HT = 0.034;
+  head.add(rbox(HL, HT, HW, 0.012, black, HL / 2 - 0.02, 0, 0));
+  head.add(rbox(0.012, 0.012, HW - 0.04, 0.004, mat('#000', { roughness: 0.5 }), HL - 0.015, 0.004, 0));              // rainure du bout
   const glow = new THREE.MeshBasicMaterial({ color: '#ffe6b0', toneMapped: false });
-  const f = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.12), glow); f.rotation.x = Math.PI / 2; f.position.y = -0.0135; head.add(f);
-  head.position.set(1.38, 2.2, 0);
+  const f = new THREE.Mesh(new THREE.PlaneGeometry(HL - 0.06, HW - 0.04), glow); f.rotation.x = Math.PI / 2; f.position.set(HL / 2 - 0.02, -HT / 2 - 0.001, 0); head.add(f);
+  head.position.set(1.12, 2.2 - 0.004, 0);
   g.add(head);
   g.userData.glow = glow;
-  g.userData.headPos = new THREE.Vector3(1.38, 2.18, 0);
-  return bake(g);
+  g.userData.headPos = new THREE.Vector3(1.3, 2.18, 0);
+  return g;
 }
 
 /* ───────────── TABLEAU ───────────── */
@@ -623,6 +637,62 @@ export function painting(tex) {
   const m = mesh(new THREE.BoxGeometry(0.56, 0.642, 0.03), [side, side, side, side, front, side]);
   m.position.set(0, 0, 0);
   g.add(m);
+  return g;
+}
+
+/* ───────────── AMPLI INTÉGRÉ EN ALUMINIUM ─────────────
+ * Coffret brossé 0,44 × 0,085 × 0,30 m : façade pleine, deux grosses molettes, rangée de touches, fenêtre d'affichage, quatre pieds. */
+export function amplifier() {
+  const g = group();
+  const brush = canvasTexture(256, 64, (c, w, h) => { c.fillStyle = '#c4c7ca'; c.fillRect(0, 0, w, h); const r = rng(5); for (let i = 0; i < 90; i++) { c.fillStyle = `rgba(${r() > 0.5 ? '255,255,255' : '90,95,100'},${0.05 + r() * 0.12})`; c.fillRect(0, r() * h, w, 0.6 + r()); } });
+  const alu = new THREE.MeshStandardMaterial({ map: brush, color: '#e2e4e6', metalness: 0.85, roughness: 0.38, envMapIntensity: 1.8 });
+  const dark = mat('#17181a', { roughness: 0.5 });
+  const W = 0.44, H = 0.07, D = 0.3;
+  g.add(rbox(W, H, D, 0.004, alu, 0, 0.015 + H / 2, 0));
+  g.add(rbox(W + 0.002, 0.012, 0.012, 0.003, alu, 0, 0.015 + H - 0.006, D / 2 + 0.002));                          // arête haute de la façade
+  for (const x of [-0.17, 0.17]) g.add(cyl(0.02, 0.02, 0.022, mat('#cfd2d6', { metalness: 0.9, roughness: 0.25, envMapIntensity: 2 }), x, 0.015 + H / 2, D / 2 + 0.011, 28).rotateX(Math.PI / 2));
+  for (const x of [-0.17, 0.17]) g.add(box(0.003, 0.012, 0.004, dark, x, 0.015 + H / 2 + 0.01, D / 2 + 0.023));    // repères de molettes
+  g.add(box(0.1, 0.018, 0.003, mat('#0a1018', { roughness: 0.2 }), 0, 0.015 + H / 2 + 0.012, D / 2 + 0.0015));    // affichage
+  for (let i = 0; i < 5; i++) g.add(cyl(0.006, 0.006, 0.006, dark, -0.06 + i * 0.03, 0.015 + H / 2 - 0.016, D / 2 + 0.003, 10).rotateX(Math.PI / 2));
+  for (const [x, z] of [[-0.19, -0.12], [0.19, -0.12], [-0.19, 0.12], [0.19, 0.12]]) g.add(cyl(0.016, 0.018, 0.015, dark, x, 0.0075, z, 14));
+  // prises RCA à l'arrière
+  const back = D / 2;
+  for (const [i, c] of [['#c93030', 0], ['#f2f2ee', 1]].map((v, n) => [n, v[0]])) { g.add(cyl(0.007, 0.007, 0.012, mat(c), -0.07 + i * 0.026, 0.015 + H / 2, -back - 0.004, 12).rotateX(Math.PI / 2)); }
+  return bake(g);
+}
+
+/** Câbles RCA qui traînent : deux fils (rouge, blanc) entre le plateau et l'ampli, avec boucle de mou sur le meuble. */
+export function rcaCables(ampX = -0.37, ampBackZ = -0.158, topY = 0.0, ampSockY = 0.05) {
+  const g = group();
+  const cols = ['#b32525', '#ececea'];
+  [0, 1].forEach((i) => {
+    const x0 = ampX - 0.07 + i * 0.026;
+    const out = i === 0 ? -1 : 1;
+    const pts = [
+      [x0, ampSockY, ampBackZ - 0.014], [x0, ampSockY - 0.01, ampBackZ - 0.06], [x0 + out * 0.03, topY + 0.006, ampBackZ - 0.08],
+      [x0 + out * 0.2, topY + 0.004, ampBackZ - 0.02], [x0 + out * 0.3, topY + 0.004, ampBackZ + 0.1], [x0 + out * 0.2, topY + 0.004, ampBackZ + 0.1],
+      [x0 + out * 0.15, topY + 0.004, ampBackZ - 0.01], [x0 + out * 0.08, topY + 0.01, ampBackZ - 0.1], [x0 - out * 0.02, topY + 0.07, ampBackZ - 0.035], [x0 - out * 0.02, topY + 0.115, ampBackZ - 0.012],
+    ];
+    g.add(tube(pts, 0.0034, mat('#16171a', { roughness: 0.6 }), { segs: 90, radial: 6 }));
+    for (const [p, q] of [[pts[0], pts[1]], [pts[pts.length - 1], pts[pts.length - 2]]]) {
+      const plug = bone([p[0], p[1], p[2]], [p[0] + (q[0] - p[0]) * 0.25, p[1] + (q[1] - p[1]) * 0.25, p[2] + (q[2] - p[2]) * 0.25], 0.0065, 0.0055, mat(cols[i], { roughness: 0.4, metalness: 0.2 }), 10);
+      g.add(plug);
+    }
+  });
+  return g;
+}
+
+/* ───────────── ENCEINTE JBL L100 MKII (3D Warehouse, spencer smith) ─────────────
+ * Modèle d'origine : ébénisterie noyer, grille à damier (face avant = +z). Recentré au sol, échelle `k`. */
+export function speakerFromGltf(gltf, k = 1.1) {
+  const g = group();
+  const root = gltf.scene.clone(true);
+  root.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(root);
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach((m) => { m.metalness = 0.05; m.roughness = 0.65; }); } });
+  const inner = group(root); inner.scale.setScalar(k);
+  inner.position.set(-(bb.max.x + bb.min.x) / 2 * k, -bb.min.y * k, -(bb.max.z + bb.min.z) / 2 * k);
+  g.add(inner);
   return g;
 }
 
