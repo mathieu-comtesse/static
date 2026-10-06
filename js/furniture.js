@@ -318,7 +318,7 @@ function splitComponents(geo) {
  * (dossiers, assises) pour reproduire la fonction du DS-450 : dossiers basculés vers l'arrière, assise de gauche tirée vers l'avant en méridienne.
  * `opts.recline` en radians, `opts.slide` = coulissement de l'assise (unités du fichier). Avant du canapé = +z. */
 export function sofaFrom(gltf, width = 2.2, opts = {}) {
-  const { recline = 0.4, slide = 52, slideSide = 1 } = opts;
+  const { recline = 0.4, slide = 30, slideSide = 1, lateral = 26 } = opts;
   const g = group();
   const root = gltf.scene.clone(true);
   root.updateMatrixWorld(true);
@@ -345,10 +345,10 @@ export function sofaFrom(gltf, width = 2.2, opts = {}) {
       if (slide > 0) {
         for (const sx of [-1, 1]) {
           const leg = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 22, 12).rotateX(Math.PI / 2), metalM);
-          leg.position.set(slideSide * 65 * sx * (sx === 1 ? 1 : 1) * (sx === 1 ? 1 : 1), -39 - slide + 3, 11); leg.position.x = slideSide * 65 * (sx === 1 ? 1 : 0.0) ; leg.castShadow = true;
+          leg.position.set(slideSide * (65 + lateral), -39 - slide + 3, 11); leg.castShadow = true;
           if (sx === 1) hold.add(leg);
         }
-        const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 22, 12).rotateX(Math.PI / 2), metalM); leg2.position.set(slideSide * 3, -39 - slide + 3, 11); leg2.castShadow = true; hold.add(leg2);
+        const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 22, 12).rotateX(Math.PI / 2), metalM); leg2.position.set(slideSide * (3 + lateral), -39 - slide + 3, 11); leg2.castShadow = true; hold.add(leg2);
       }
       continue;
     }
@@ -370,7 +370,7 @@ export function sofaFrom(gltf, width = 2.2, opts = {}) {
       const m = new THREE.Mesh(c.geo, leather); m.castShadow = m.receiveShadow = true;
       pivot.add(m); pivot.position.set(px, py, pz);
       if (isBack) pivot.rotation.x = -recline;
-      if (isSeat && side === slideSide) pivot.position.y -= slide;
+      if (isSeat && side === slideSide) { pivot.position.y -= slide; pivot.position.x += slideSide * lateral; }
       holder.add(pivot);
     }
   }
