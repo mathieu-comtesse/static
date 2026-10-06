@@ -182,7 +182,7 @@ export async function createCharacter({
 
   const shoes = model.getObjectByName('shoes');
   const nbShoes = [], shoeParts = [];
-  if (shoes) shoes.traverse((o) => { if (o.isMesh && /^shoes_[1-8]$/.test(o.name)) shoeParts.push(o); });   // chaussures d'origine ; shoes_9-12 = chevilles et peau, à garder
+  if (shoes) shoes.traverse((o) => { if (o.isMesh && /^shoes_(?:[1-9]|1[0-2])$/.test(o.name)) shoeParts.push(o); });   // chaussures d'origine ; shoes_9-12 : chevilles d'origine, remplacées par le revers du pantalon
   // Monte la paire de New Balance 992 (assets/nb992.glb : deux nœuds nb_left / nb_right, orteils vers +Z, semelle à y = 0, ~29 cm) sur les os des pieds.
   // La pose de référence est l'Idle : dans cette pose le pied est à plat, on y place chaque chaussure puis on la fige dans le repère de l'os.
   const attachNB992 = () => {
@@ -199,25 +199,26 @@ export async function createCharacter({
       const world = new THREE.Matrix4().makeBasis(x, new THREE.Vector3(0, 1, 0), fwd).setPosition(f0.x + fwd.x * 0.07, ground, f0.z + fwd.z * 0.07);
       const local = bone.matrixWorld.clone().invert().multiply(world);
       shoe.matrixAutoUpdate = true; local.decompose(shoe.position, shoe.quaternion, shoe.scale);
+      shoe.scale.multiplyScalar(1.3);                                // baskets plus grosses (style chibi)
       bone.add(shoe); nbShoes.push(shoe);
       // jambe de pantalon baggy, modélisée : tube évasé à anneaux elliptiques, plis verticaux qui s'accentuent vers le bas, froissements au-dessus du revers,
       // ourlet plus long derrière que devant (il repose sur la languette de la basket), intérieur sombre. Porté par le mollet, suit la jambe.
       const calf = bone.parent, knee = calf.getWorldPosition(new THREE.Vector3());
-      const A = new THREE.Vector3(f0.x, ground + 0.115, f0.z), P1 = knee.clone().lerp(A, 0.38);
+      const A = new THREE.Vector3(f0.x, ground + 0.055, f0.z), P1 = knee.clone().lerp(A, 0.22);
       const axis = A.clone().sub(P1), len = axis.length(); axis.normalize();
       const fwdW = new THREE.Vector3().subVectors(b0, f0); fwdW.y = 0; fwdW.normalize();             // avant du pied
       const sideV = new THREE.Vector3().crossVectors(axis, fwdW).normalize(), front = new THREE.Vector3().crossVectors(sideV, axis).normalize();
       const RINGS = 12, SEG = 20, pos = [], idx = [], rnd = (i) => { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s); };
       for (let i = 0; i <= RINGS; i++) {
         const t = i / RINGS, e = t * t * (3 - 2 * t);
-        const rx0 = 0.062 + 0.058 * e, rz0 = 0.058 + 0.052 * e;                                    // largeur : légèrement plus large côté côtés que devant/derrière
+        const rx0 = 0.066 + 0.07 * e, rz0 = 0.062 + 0.064 * e;                                    // largeur : légèrement plus large côté côtés que devant/derrière
         const pinch = i === RINGS - 1 ? 0.93 : i === RINGS ? 1.02 : 1;                             // revers : léger resserrement puis rebord
         for (let j = 0; j < SEG; j++) {
-          const th = (j / SEG) * Math.PI * 2, fold = Math.sin(th * 5 + t * 2.2) * 0.011 * e + (rnd(i * 31 + j) - 0.5) * 0.006 * e + Math.sin(th * 3 - t * 5) * 0.006 * e;
+          const th = (j / SEG) * Math.PI * 2, fold = Math.sin(th * 5 + t * 2.2) * 0.011 * e + (rnd(i * 31 + j) - 0.5) * 0.003 * e + Math.sin(th * 3 - t * 5) * 0.004 * e;
           const hem = i === RINGS ? -0.045 * Math.max(0, Math.cos(th)) + 0.02 * Math.max(0, -Math.cos(th)) : 0;     // ourlet : remonte devant, descend derrière
           const rr = 1 + (fold / 0.06);
           const x = Math.sin(th) * rx0 * pinch * rr, z = Math.cos(th) * rz0 * pinch * rr;
-          const drop = t * len + hem + (rnd(i * 7 + j) - 0.5) * 0.004;
+          const drop = t * len + hem + (rnd(i * 7 + j) - 0.5) * 0.002;
           pos.push(P1.x + sideV.x * x + front.x * z + axis.x * drop, P1.y + sideV.y * x + front.y * z + axis.y * drop, P1.z + sideV.z * x + front.z * z + axis.z * drop);
         }
       }

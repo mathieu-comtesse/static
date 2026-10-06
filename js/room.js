@@ -149,7 +149,7 @@ export async function createRoom(container, bubbleEl) {
   while (cs.lantern.children.length) cs.lantern.remove(cs.lantern.children[0]);
   const akari = F.akariFromGltf(akariGltf); akari.rotation.y = -0.5; cs.lantern.add(akari);
   mkLamp('andon', akari.userData.glow, new THREE.PointLight('#ffd9a0', 0, 2.5, 2), '#ffe2a0', '#cfc8b4');
-  lamps.andon.light.position.set(CS.x + cs.spec.RW / 2 - 0.15, 0.4, CS.z + cs.spec.DK.z0 + 1.05);
+  lamps.andon.light.position.set(CS.x + cs.spec.RW / 2 - 0.5, 0.4, CS.z + cs.spec.DK.z0 + 0.55);
   world.add(lamps.andon.light);
   // télé cathodique + PS1 + manette sur le tapis, câbles au sol
   const retro = createRetroSet();

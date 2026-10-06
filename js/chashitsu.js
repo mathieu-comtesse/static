@@ -148,7 +148,7 @@ export function createChashitsu() {
   const lf = mat('#2a1d14', { roughness: 0.6 });
   for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) lantern.add(box(0.014, 0.34, 0.014, lf, x * 0.1, 0.2, z * 0.1));
   for (const y of [0.03, 0.37]) lantern.add(box(0.22, 0.02, 0.22, lf, 0, y, 0));
-  lantern.position.set(RW / 2 - 0.15, DK.y, DK.z0 + 1.05); lantern.userData.id = 'andon';
+  lantern.position.set(RW / 2 - 0.5, DK.y, DK.z0 + 0.55); lantern.userData.id = 'andon';
   vista.add(lantern);
 
   /* mer et rochers */
