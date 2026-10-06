@@ -16,7 +16,7 @@ export async function initPortrait(host) {
   const hero = await createCharacter();
   hero.group.rotation.y = 0.18;
   scene.add(hero.group);
-  hero.play('Idle_Loop', { fade: 0.01 }); hero.setBase('happy');
+  hero.play('Idle_Loop', { fade: 0.01 }); hero.setBase('neutral');
   hero.setHeadOnly(true);                 // la tête seule, comme demandé
   // cadrage : buste, tête au tiers supérieur
   hero.update(0.5, 0.5);

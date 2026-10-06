@@ -11,7 +11,7 @@ function card(p, i, kind) {
   return `<button class="pc ${kind}" type="button" data-i="${i}" data-k="${kind}" aria-label="${esc(p.title)}">
     <span class="pc-img${p.pixel ? ' px' : ''}" style="background-image:url('${p.img}')"></span>
     <span class="pc-body"><b>${esc(p.title)}</b><span class="pc-sub">${esc(p.sub)}</span>
-    ${kind === 'pro' ? `<strong class="pc-gain">${esc(p.gain)}</strong><span class="pc-unit">${esc(p.unit)}</span>` : ''}</span></button>`;
+    ${kind === 'pro' ? `<span class="pc-g"><small>Temps</small><strong>${esc(p.time)}</strong><em>${esc(p.timeCtx)}</em></span><span class="pc-g m"><small>Argent</small><strong>${esc(p.money)}</strong><em>${esc(p.moneyCtx)}</em></span>` : ''}</span></button>`;
 }
 
 /* fiche synthétique d'un projet : image, gain, trois lignes ; Échap ou clic à côté pour fermer */
@@ -28,7 +28,7 @@ function initDetail() {
     if (kind === 'pro') {
       const d = p.pro;
       txt.innerHTML = `<p class="k">Projet professionnel</p><h3>${esc(p.title)}</h3><p class="s">${esc(p.sub)}</p>
-        <div class="g"><strong>${esc(p.gain)}</strong><span>${esc(p.unit)}</span></div>
+        <div class="g"><small>Temps</small><strong>${esc(p.time)}</strong><span>${esc(p.timeCtx)}</span></div><div class="g m"><small>Argent</small><strong>${esc(p.money)}</strong><span>${esc(p.moneyCtx)}</span></div>
         ${d && vous(d.lead) ? `<p>${esc(vous(d.lead))}</p>` : ''}${d && vous(d.gain) ? `<p><b>Gain.</b> ${esc(vous(d.gain))}</p>` : ''}${d && vous(d.team) ? `<p><b>Pour l’équipe.</b> ${esc(vous(d.team))}</p>` : ''}`;
     } else {
       txt.innerHTML = `<p class="k">Projet personnel · ${esc(p.sub)}</p><h3>${esc(p.title)}</h3><p>${esc(p.desc)}</p><p><a class="btn dark" href="${CV}${p.url}" target="_blank" rel="noopener">Jouer</a></p>`;

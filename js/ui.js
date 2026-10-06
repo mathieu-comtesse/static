@@ -275,8 +275,8 @@ function xpApp(onClose) {
   const tasks = el('div', 'tasks'); const tray = el('div', 'tray', '');
   task.append(start, tasks, tray);
   const smenu = el('div', 'smenu', `<div class="sm-h"><i></i>Mathieu</div><div class="sm-b"><div>
-      <a data-a="pro">${FOLDER('s1')}<b>Projets pro</b></a><a href="${CV}profil.html" target="_blank" rel="noopener">${FOLDER('s2')}Mon CV complet</a><a href="mailto:mathieu@comtesse.me">${FOLDER('s3')}Me contacter</a></div>
-      <div class="r"><a href="${CV}projets.html" target="_blank" rel="noopener">Projets</a><a href="${CV}competences.html" target="_blank" rel="noopener">Compétences</a><a href="https://github.com/mathieu-comtesse" target="_blank" rel="noopener">GitHub</a></div></div>
+      <a data-a="pro">${FOLDER('s1')}<b>Projets pro</b></a><a href="mailto:mathieu@comtesse.me">${FOLDER('s3')}Me contacter</a></div>
+      <div class="r"><a href="https://github.com/mathieu-comtesse" target="_blank" rel="noopener">GitHub</a></div></div>
       <div class="sm-f"><a data-a="off">Arrêter l’ordinateur</a></div>`);
   const shut = el('div', 'shut', 'Arrêt de Windows en cours…');
   const ico = el('div', 'ico', `${FOLDER('d1')}<span>Projets pro</span>`);
@@ -315,13 +315,12 @@ function xpApp(onClose) {
     const pg = PAGES[p.id]; if (!pg) return;
     const body = el('div'); body.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0';
     body.innerHTML = `<div class="menu"><span>Fichier</span><span>Edition</span><span>Affichage</span><span>Favoris</span><span>Outils</span><span>?</span></div>
-      <div class="tool"><button data-r>Actualiser</button><button data-o>Ouvrir sur le CV</button></div>
-      <div class="addr">Adresse<div>${esc(pg.url)}</div></div>
+      <div class="tool"><button data-r>Actualiser</button></div>
+      <div class="addr">Adresse<div>C:\\Projets pro\\${esc(p.title)}.htm</div></div>
       <div class="pg"><div class="pgin">${pg.html}</div></div>
       <div class="st"><span>Terminé</span><span>Internet</span></div>`;
         const w = win({ title: `${p.title} - Microsoft Internet Explorer`, icon: IE, w: 820, h: 600, body, x: Math.max(6, innerWidth * 0.1), y: 20 });
     body.querySelector('[data-r]').onclick = () => { body.querySelector('.pg').scrollTop = 0; };
-    body.querySelector('[data-o]').onclick = () => window.open(pg.url, '_blank', 'noopener');
   }
   function openExplorer() {
     if (explorer && wins.has([...wins].find((r) => r.el === explorer.el))) { const r = [...wins].find((x) => x.el === explorer.el); focus(r); return; }
@@ -329,7 +328,7 @@ function xpApp(onClose) {
     body.innerHTML = `<div class="menu"><span>Fichier</span><span>Edition</span><span>Affichage</span><span>Favoris</span><span>Outils</span><span>?</span></div>
       <div class="tool"><button disabled>◀ Précédent</button><button disabled>▶</button><button disabled>▲</button></div>
       <div class="addr">Adresse<div>C:\\Documents and Settings\\Mathieu\\Projets pro</div></div>
-      <div class="exp"><div class="side"><div class="pane"><h4>Gestion des fichiers</h4><div><a>Ouvrir un projet</a><a>Voir sur le CV</a></div></div><div class="pane"><h4>Détails</h4><div><b>Projets pro</b><br>Dossier de fichiers<br>${PRO.length} projets</div></div></div>
+      <div class="exp"><div class="side"><div class="pane"><h4>Gestion des fichiers</h4><div><a>Ouvrir un projet</a></div></div><div class="pane"><h4>Détails</h4><div><b>Projets pro</b><br>Dossier de fichiers<br>${PRO.length} projets</div></div></div>
       <div class="files"></div></div><div class="st"><span>${PRO.length} objet(s)</span><span>Poste de travail</span></div>`;
     const files = body.querySelector('.files');
     PRO.forEach((p, i) => { const f = el('div', 'file', `${FOLDER('p' + i)}<span>${esc(p.title)}</span>`); f.title = p.sub; f.onclick = () => openProject(p); files.append(f); });

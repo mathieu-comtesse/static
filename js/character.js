@@ -198,15 +198,15 @@ export async function createCharacter({
       const local = bone.matrixWorld.clone().invert().multiply(world);
       shoe.matrixAutoUpdate = true; local.decompose(shoe.position, shoe.quaternion, shoe.scale);
       bone.add(shoe); nbShoes.push(shoe);
-      // chaussette blanche : les jambes du rig s'arrêtaient au sommet des bottes d'origine ; elle comble l'espace entre la basket et le bas du pantalon
-      const knee = bone.parent.getWorldPosition(new THREE.Vector3()), dir = knee.clone().sub(f0).normalize();
-      const A = new THREE.Vector3(f0.x, ground + 0.07, f0.z), len = 0.34;
-      const y = dir.clone(), xs = new THREE.Vector3(1, 0, 0).cross(y).normalize(), zs = y.clone().cross(xs);
-      const sw = new THREE.Matrix4().makeBasis(xs, y, zs).setPosition(A.x + dir.x * len / 2, A.y + dir.y * len / 2, A.z + dir.z * len / 2);
-      const sock = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.048, len, 14), new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.95 }));
-      sock.castShadow = true; sock.frustumCulled = false;
-      bone.matrixWorld.clone().invert().multiply(sw).decompose(sock.position, sock.quaternion, sock.scale);
-      bone.add(sock); nbShoes.push(sock);
+      // jambe de pantalon baggy : le rig s'arrêtait aux genoux (effet short) ; un cône évasé, porté par le mollet, descend jusqu'au-dessus de la basket
+      const calf = bone.parent, knee = calf.getWorldPosition(new THREE.Vector3());
+      const A = new THREE.Vector3(f0.x, ground + 0.125, f0.z), P1 = knee.clone().lerp(A, 0.45), len = P1.distanceTo(A);
+      const dir = A.clone().sub(P1).normalize(), xs = new THREE.Vector3(1, 0, 0).cross(dir).normalize(), zs = dir.clone().cross(xs);
+      const sw = new THREE.Matrix4().makeBasis(xs, dir.clone().negate(), zs).setPosition(P1.x + dir.x * len / 2, P1.y + dir.y * len / 2, P1.z + dir.z * len / 2);
+      const pant = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.108, len, 14, 1, true), new THREE.MeshStandardMaterial({ color: '#59627e', roughness: 0.92, side: THREE.DoubleSide }));
+      pant.castShadow = true; pant.frustumCulled = false;
+      calf.matrixWorld.clone().invert().multiply(sw).decompose(pant.position, pant.quaternion, pant.scale);
+      calf.add(pant); nbShoes.push(pant);
     }
     act.stop(); tm.stopAllAction(); tm.uncacheRoot(group);
     shoeParts.forEach((o) => { o.visible = false; });
