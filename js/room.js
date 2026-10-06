@@ -289,7 +289,8 @@ export async function createRoom(container, bubbleEl) {
   /* ─── jour / nuit ─── */
   let night = false;
   function applyTheme() {
-    night = document.documentElement.dataset.theme === 'dark';
+    const th = document.documentElement.dataset.theme;
+    night = th ? th === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
     hemi.intensity = night ? 0.5 : 0.85; hemi.color.set(night ? '#9db4e0' : '#fff7e8'); hemi.groundColor.set(night ? '#2a3350' : '#cdbfa5');
     sun.intensity = night ? 0.55 : 2.0; sun.color.set(night ? '#a9bde8' : '#fff0dc');
     scene.environmentIntensity = night ? 0.12 : 0.22;
@@ -297,6 +298,7 @@ export async function createRoom(container, bubbleEl) {
     for (const k in lamps) if (!lamps[k].manual) lamps[k].on = night;
   }
   new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   applyTheme();
 
   /* ─── boucle ─── */
