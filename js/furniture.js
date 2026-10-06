@@ -942,3 +942,24 @@ export function ampPosts(amp) {
   });
   return out;
 }
+
+/* ───────────── SUSPENSION FALKLAND (Danese Milano, Bruno Munari) ─────────────
+ * Modèle 3D Warehouse « falkland floor lamp » de minkyoung K. : on garde le fourreau de tissu plissé et ses anneaux noirs, sans le pied ni la tige.
+ * Origine = haut du fourreau ; un câble noir monte jusqu'à un cache-plafond blanc à `cable` mètres au-dessus. */
+export function falkland(gltf, k = 0.62, cable = 0.5) {
+  const g = group();
+  const root = gltf.scene.clone(true); root.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(root);
+  const fabric = [];
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; const m = o.material.clone(); o.material = m; m.side = THREE.DoubleSide; if (m.map) { m.roughness = 0.9; m.metalness = 0; fabric.push(m); } else { m.metalness = 0.5; m.roughness = 0.45; } } });
+  const inner = group(root); inner.scale.setScalar(k);
+  inner.position.set(-(bb.max.x + bb.min.x) / 2 * k, -bb.max.y * k, -(bb.max.z + bb.min.z) / 2 * k);
+  g.add(inner);
+  const black = mat('#141416', { roughness: 0.5, metalness: 0.4 });
+  g.add(cyl(0.0035, 0.0035, cable, black, 0, cable / 2, 0, 6));
+  g.add(cyl(0.05, 0.05, 0.02, black, 0, 0.01, 0, 20));                                   // coiffe sur le dessus du fourreau
+  g.add(cyl(0.07, 0.07, 0.022, mat('#f1efe9', { roughness: 0.6 }), 0, cable + 0.011, 0, 24));   // cache-plafond
+  g.userData.height = (bb.max.y - bb.min.y) * k;
+  g.userData.glow = { color: new THREE.Color(), update(kk) { for (const m of fabric) { m.emissive.set('#ffc98a'); m.emissiveIntensity = 0.85 * kk; } } };
+  return g;
+}

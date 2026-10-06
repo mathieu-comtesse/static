@@ -35,3 +35,12 @@ footer p{margin:0}
 .ns{text-align:center;color:var(--mute)}
 @media (max-width:700px){.room{height:clamp(340px,52vh,520px)}.nav{top:12px}.btn{padding:8px 10px;font-size:12.5px;white-space:nowrap}.hero{padding-bottom:72px}}
 @media (prefers-reduced-motion:reduce){h1,.bubble.show{animation:none}}
+/* pensée : nuage + miniature 3D, traîne de deux cercles vers la tête */
+.bubble.thought{padding:0;width:176px;height:160px;border-radius:0;background:none;box-shadow:none;white-space:normal;filter:drop-shadow(0 6px 10px rgb(0 0 0 / .16));color:#1c1a17}
+.bubble.thought::after{display:none}
+.bubble.thought .cloud{position:absolute;inset:0;width:100%;height:100%}
+.bubble.thought canvas{position:absolute;left:50%;top:12px;width:100px;height:100px;transform:translateX(-50%);image-rendering:pixelated}
+.bubble.thought .cap{position:absolute;left:14px;right:14px;bottom:34px;text-align:center;font-size:12px;font-weight:600;line-height:1.1;color:#1c1a17}
+.bubble.thought i{position:absolute;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgb(0 0 0 / .1)}
+.bubble.thought .t1{width:18px;height:18px;left:50%;bottom:-12px;margin-left:-4px}
+.bubble.thought .t2{width:10px;height:10px;left:50%;bottom:-26px;margin-left:-14px}
