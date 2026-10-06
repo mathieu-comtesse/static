@@ -253,6 +253,29 @@ export function officeChair() {
   return bake(g);
 }
 
+/* ───────────── SIÈGE SETU (Herman Miller), modèle officiel du fabricant ─────────────
+ * Fichier glb publié par Herman Miller sur 3D Warehouse (≈ 9 k triangles), recoloré en gris : maille grise, cadre gris clair, roulettes noires.
+ * Les pastilles de couleur du fichier d'origine (échantillons de tissus) sont masquées. Avant du siège = +z. */
+export function officeChairFrom(gltf) {
+  const g = group();
+  const root = gltf.scene.clone(true);
+  const grey = { Aluminum: '#d4d6d6', 'Studio White': '#b9bcbe', Casters: '#202124' };
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    if (o.geometry.attributes.position.count <= 4) { o.visible = false; return; }
+    const src = Array.isArray(o.material) ? o.material[0] : o.material;
+    const nm = src.name || '';
+    const m = new THREE.MeshStandardMaterial({ color: grey[nm] || '#8e9195', roughness: /Lyris/.test(nm) ? 0.95 : 0.5, metalness: nm === 'Aluminum' ? 0.35 : 0, side: THREE.DoubleSide });
+    if (/Lyris/.test(nm)) { m.color.set('#8b8e92'); if (src.map) { m.bumpMap = src.map; m.bumpScale = 0.6; src.map.colorSpace = THREE.NoColorSpace; } }
+    o.material = m; o.castShadow = o.receiveShadow = true;
+  });
+  const inner = group(root);
+  inner.position.set(-0.335, 0, 0.325);          // centre le siège sur son axe
+  const turn = group(inner); turn.rotation.y = -Math.PI / 2;
+  g.add(turn);
+  return g;
+}
+
 /* ───────────── PLANTES ───────────── */
 function bowl(R, H, color, gravel = '#e5e0d3') {
   const g = group();
