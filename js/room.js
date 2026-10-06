@@ -123,7 +123,7 @@ export async function createRoom(container, bubbleEl) {
   if (paintTex) { const pt = add('painting', F.painting(paintTex), -0.7, -2.95, 0, 1.35, 0.7, world, 0); pt.scale.setScalar(1.3); }
   const dra = F.dracaena(); inkify(dra, { skip: (o) => o.material.color.getHexString() !== 'b3a893' }); add('dracaena', dra, 2.85, -2.45, 0.3, 0, 0.65);
   add('speaker2', sp2, 1.25, -2.5, -0.35, 0, 0.75);
-  add('shelf1', F.shelf(), 4.6, -1.3, Math.PI / 2, 0, 0.8);
+  add('shelf1', F.shelf(), 2.45, 1.35, Math.PI / 2, 0, 0.8);
 
   // positions des sources lumineuses (repère monde)
   const yawed = (v, yaw, ox, oz) => { v = v.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw); return [ox + v.x, v.y, oz + v.z]; };
