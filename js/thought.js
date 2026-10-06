@@ -30,7 +30,7 @@ export function createThought(el) {
         c.position.sub(ctr); holder.scale.setScalar(k); spin.add(holder);
         tilt.rotation.x = tiltDeg * Math.PI / 180; spin.rotation.y = yaw * Math.PI / 180;
       }
-      cap.textContent = text || '';
+      cap.textContent = '';
     },
     update(dt) { if (spin.children.length) { spin.rotation.y += dt * rate; renderer.render(scene, cam); } },
   };

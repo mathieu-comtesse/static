@@ -11,7 +11,7 @@ initUI();
   };
   const apply = (t) => {
     root.dataset.theme = t;
-    document.querySelector('meta[name=theme-color]')?.setAttribute('content', t === 'dark' ? '#1a1c21' : '#e9dfcf');
+    document.querySelector('meta[name=theme-color]')?.setAttribute('content', t === 'dark' ? '#15171b' : '#f5f7fb');
     if (btn) { btn.innerHTML = t === 'dark' ? ICON.sun : ICON.moon; btn.setAttribute('aria-label', t === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'); }
   };
   let saved = null; try { saved = localStorage.getItem('cv3d-theme'); } catch (_) {}

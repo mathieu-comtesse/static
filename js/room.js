@@ -52,7 +52,7 @@ export async function createRoom(container, bubbleEl) {
   /* ─── textures ─── */
   const loader = new THREE.TextureLoader();
   const load = (url) => new Promise((res) => loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; res(t); }, undefined, () => res(null)));
-  const [rugTex, paintTex, coverTex, ekGltf, setuGltf, sofaGltf, jblGltf, falkGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), load(COVER.file), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/ds450.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/jbl.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/falkland.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
+  const [rugTex, paintTex, coverTex, ekGltf, setuGltf, sofaGltf, jblGltf, falkGltf, borneGltf] = await Promise.all([load('assets/tapis.webp'), load('assets/tableau.jpg'), load(COVER.file), loadBuffer('assets/ekstrem.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/setu.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/ds450.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/jbl.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/falkland.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej))), loadBuffer('assets/borne-beton.glb').then((b) => new Promise((res, rej) => new GLTFLoader().parse(b, '', res, rej)))]);
 
   /* ─── mobilier ─── */
   const world = group(); scene.add(world);
@@ -89,6 +89,25 @@ export async function createRoom(container, bubbleEl) {
   const brontes = F.brontes();
   add('brontes', brontes, -0.8, -0.22, 0.4, 0.74, 0, deskSet);
   const tw = F.tower(); tw.position.set(0.8, 0.74, -0.08); tw.rotation.y = -0.12; deskSet.add(tw);
+
+  // SNOW_PEAK_DESK_SET : tasse titane 450 + dessous de verre bleu/vert (reproduction procédurale d'après les photos).
+  {
+    const set = new THREE.Group();
+    const titanium = new THREE.MeshStandardMaterial({ color: '#b8b4b0', roughness: 0.34, metalness: 0.82 });
+    const blue = new THREE.MeshStandardMaterial({ color: '#36a6e8', roughness: 0.48, metalness: 0.02 });
+    const green = new THREE.MeshStandardMaterial({ color: '#64ae36', roughness: 0.48, metalness: 0.02 });
+    const coaster = new THREE.Group();
+    const cb = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.082, 0.008, 36), blue); cb.scale.set(1.15, 1, 0.92); cb.position.y = 0.004; coaster.add(cb);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.078, 0.009, 8, 36), green); ring.rotation.x = Math.PI / 2; ring.scale.set(1.15, 0.92, 1); ring.position.y = 0.009; coaster.add(ring);
+    const mug = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.049, 0.095, 28, 1, true), titanium); body.position.y = 0.056; mug.add(body);
+    const bottom = new THREE.Mesh(new THREE.CylinderGeometry(0.049, 0.049, 0.004, 28), titanium); bottom.position.y = 0.009; mug.add(bottom);
+    const lip = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.0022, 6, 28), titanium); lip.rotation.x = Math.PI / 2; lip.position.y = 0.104; mug.add(lip);
+    const h1 = new THREE.Mesh(new THREE.TorusGeometry(0.046, 0.003, 6, 24, Math.PI * 1.38), titanium.clone()); h1.rotation.set(Math.PI / 2, 0, Math.PI / 2); h1.position.set(0.055, 0.061, 0); h1.scale.set(1.0, 1.25, 1.0); mug.add(h1);
+    const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.061, 0.012), titanium); hinge.position.set(0.052, 0.058, 0); mug.add(hinge);
+    const mark = new THREE.Mesh(new THREE.PlaneGeometry(0.034, 0.024), new THREE.MeshBasicMaterial({ color: '#171717', transparent: true, opacity: 0.9, side: THREE.DoubleSide })); mark.position.set(0, 0.060, 0.0515); mug.add(mark);
+    set.add(coaster, mug); set.position.set(0.56, 0.742, 0.23); set.rotation.y = -0.12; deskSet.add(set);
+  }
   const dcab = (pts, r = 0.0028) => deskSet.add(tube(pts.map(([x, y, z]) => [x, y + 0.74, z]), r, mat('#121214', { roughness: 0.6 }), { segs: 40, radial: 5 }));
   dcab([[0.77, 0.3, -0.3], [0.76, 0.012, -0.34], [0.62, 0.006, -0.36], [0.5, 0.006, -0.3], [0.5, 0.03, -0.2]]);
   dcab([[0.79, 0.28, -0.3], [0.78, 0.012, -0.36], [0.4, 0.006, -0.4], [0.0, 0.006, -0.36], [-0.2, 0.03, -0.28]]);
@@ -147,7 +166,7 @@ export async function createRoom(container, bubbleEl) {
   const AMPH = 0.085;
   const tt = F.turntable(); inkify(tt, { skip: (o) => o.material.color.getHexString() !== '3f2d22' }); tt.position.set(-0.37, 0.734 + AMPH, 0); usmSet.add(tt);
   const rca = F.rcaCables(-0.37, -0.158, 0.734, 0.734 + 0.05); usmSet.add(rca);
-  const cl = F.concreteLamp(); inkify(cl, { skip: (o) => o.material.vertexColors }); cl.scale.setScalar(0.6); add('beton', cl, 0.44, 0.0, 0, 0.734, 0, usmSet);
+  const cl = F.borneFromGltf(borneGltf); add('beton', cl, 0.44, 0.0, 0, 0.734, 0, usmSet);
   add('usm', usmSet, -0.7, -2.4, 0, 0, 0.45);
   mkLamp('beton', cl.userData.glow, new THREE.PointLight('#ffe9c4', 0, 2.5, 2), '#fff3d6', '#8a8780');
 
@@ -264,6 +283,8 @@ export async function createRoom(container, bubbleEl) {
 
   const pointers = new Map();
   let drag = null, pinch = 0, hovered = null, hdrag = null;
+  let autonomousPauseUntil = 0;
+  const pauseAutonomy = (ms = 18000) => { autonomousPauseUntil = performance.now() + ms; };
   const el = renderer.domElement;
   // Portrait Shupi : suivi du pointeur normalisé (-1..1), comme /info/?portrait.
   const updatePortraitLook = (e) => {
@@ -288,6 +309,7 @@ export async function createRoom(container, bubbleEl) {
     return Math.hypot(cx - (A[0] + abx * t), cy - (A[1] + aby * t)) < R;
   };
   el.addEventListener('pointerdown', (e) => {
+    pauseAutonomy();
     el.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 1) {
@@ -394,6 +416,27 @@ export async function createRoom(container, bubbleEl) {
   for (const st of Object.values(stations)) if (!st.approach) st.approach = nav.nearest(st.pos[0], st.pos[2]);
   stations.chair = stations.desk; stations.stool = stations.bonsai; stations.shoes = stations.cha; stations.chashitsu = stations.cha;
 
+  // Déplacements autonomes, comme sur le site de référence : le personnage se lève et va d'une activité à l'autre.
+  // Ni vinyle (la musique ne démarre que sur un geste) ni tiroir ouvert : on laisse la main à l'utilisateur.
+  const autonomousStations = [stations.desk, stations.ekstrem, stations.alocasia, stations.bonsai, stations.dracaena, stations.sofa, stations.cha];
+  let autonomousNext = performance.now() + 4500 + Math.random() * 3500;
+  let autonomousActivitySince = 0, autonomousLast = null, autonomousPrevMode = '';
+  const autonomousTick = () => {
+    const now = performance.now();
+    if (now < autonomousPauseUntil || appOpen || crate.isOpen || !hero.group.visible) return;
+    const mode = director.mode;
+    if (mode !== autonomousPrevMode) { if (mode === 'activity') autonomousActivitySince = now; autonomousPrevMode = mode; }
+    const cur = director.current;
+    if (mode === 'activity' && cur !== stations.usm && autonomousActivitySince && now - autonomousActivitySince > (cur && cur.ritual ? 32000 : 11000)) {
+      director.stand(); autonomousNext = now + 1800 + Math.random() * 2600; autonomousActivitySince = 0; return;
+    }
+    if (mode === 'idle' && now >= autonomousNext) {
+      const pool = autonomousStations.filter((s) => s !== autonomousLast);
+      const st = pool[Math.floor(Math.random() * pool.length)] || autonomousStations[0];
+      autonomousLast = st; director.go(st); autonomousNext = now + 12500 + Math.random() * 7500;
+    }
+  };
+
   /* thé : entrée par le balcon, chaussures ôtées devant le shoji, porte ouverte, puis zabuton de l'invité */
   { const st = stations.cha, DKz = CS.z + cs.spec.DK.z0, rowZ = DKz + 0.22;
     const D = { walk: null };
@@ -424,14 +467,32 @@ export async function createRoom(container, bubbleEl) {
   const thought = createThought(thoughtEl);
   let chosen = -1;
   const clip = (t, n) => (t.length > n ? t.slice(0, n - 1) + '\u2026' : t);
+  const IC = {
+    play: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z" fill="currentColor"/></svg>',
+    next: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 5.5v13l9-6.5zM16.5 5.5H19v13h-2.5z" fill="currentColor"/></svg>',
+    crate: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 8h16v3H4zM5 11h14v8H5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 14.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  };
+  // lecteur de musique : un seul clic lance un titre au hasard, puis ça défile tout seul
+  const pill = document.createElement('div'); pill.className = 'mpill';
+  pill.innerHTML = `<button class="mp-play" type="button" aria-label="Lancer la musique">${IC.play}<span>Lancer la musique</span></button><button class="mp-next" type="button" aria-label="Titre suivant" hidden>${IC.next}</button><button class="mp-crate" type="button" aria-label="Choisir un disque dans le tiroir">${IC.crate}</button>`;
+  container.appendChild(pill);
+  const mpPlay = pill.querySelector('.mp-play'), mpNext = pill.querySelector('.mp-next'), mpCrate = pill.querySelector('.mp-crate');
+  const mpLabel = (i) => { const t = TRACKS[i]; mpPlay.querySelector('span').textContent = clip(t.t, 26) + ' \u00b7 ' + clip(t.a, 16); };
   const jukebox = createJukebox({
-    onTrack: (i) => {
-      crate.setPlaying(i);
-      const t = TRACKS[i], st = stations.usm;
-      st.label = '\u266a ' + clip(t.t, 30) + ' \u00b7 ' + clip(t.a, 18);
-      if (thoughtFor === st) thought.show(st.think.obj, st.label, st.think);
+    onTrack: (i) => { crate.setPlaying(i); mpLabel(i); },
+    onState: ({ on, paused }) => {
+      pill.classList.toggle('on', on);
+      mpPlay.firstElementChild.outerHTML = on && !paused ? IC.pause : IC.play;
+      mpPlay.setAttribute('aria-label', on ? (paused ? 'Reprendre' : 'Mettre en pause') : 'Lancer la musique');
+      mpNext.hidden = !on;
+      if (!on) mpPlay.querySelector('span').textContent = 'Lancer la musique';
     },
   });
+  mpPlay.addEventListener('click', (e) => { e.stopPropagation(); jukebox.toggle(); });
+  mpNext.addEventListener('click', (e) => { e.stopPropagation(); jukebox.next(); });
+  mpCrate.addEventListener('click', (e) => { e.stopPropagation(); openCrate(!crate.isOpen); });
+  pill.addEventListener('pointerdown', (e) => e.stopPropagation());
   let modelBaseY = null, thoughtFor = null, music = false, bubbleT = 0, spawned = false;
   const speakers = ['speaker1', 'speaker2'].map((id) => items.find((i) => i.id === id));
   const record = tt.userData.record, arm = tt.userData.arm;
@@ -501,7 +562,7 @@ export async function createRoom(container, bubbleEl) {
   function setMusic(on) {
     music = on;
     if (!on) { jukebox.stop(); return; }
-    if (chosen >= 0) { const c = chosen; chosen = -1; jukebox.play(c); } else jukebox.random();
+    if (chosen >= 0) { const c = chosen; chosen = -1; jukebox.play(c); } else if (!jukebox.isOn) jukebox.random();
   }
   /* bac à pochettes : le tiroir s'ouvre, la caméra s'approche, on feuillette en survolant, un clic joue le titre */
   let crateHover = -1;
@@ -514,8 +575,8 @@ export async function createRoom(container, bubbleEl) {
   }
   function playTrack(i) {
     openCrate(false);
-    if (director.current === stations.usm && director.mode === 'activity') jukebox.play(i);
-    else { chosen = i; goTo('usm'); }
+    jukebox.play(i);                                           // la musique part tout de suite, le personnage rejoint la platine en parallèle
+    if (!(director.current === stations.usm && director.mode === 'activity')) goTo('usm');
   }
   const card = document.createElement('div'); card.className = 'sleeve-card'; container.appendChild(card);
   let cardFor = -2;
@@ -617,9 +678,11 @@ export async function createRoom(container, bubbleEl) {
       const drunk = ud.bowl.userData.tea.visible ? 1 : 0; updateSteam(ud.sBowl, t, 0.3, 0.1, drunk); updateSteam(ud.sKama, t + 1.3, 0.34, 0.13, 0.8); }
     if (!spawned && since > 1.6) { spawned = true; director.spawn(0.9, 0.7, 0.7); hero.group.visible = true; hero.group.scale.setScalar(0.01); poof(hero.group.position); }
     if (hero.group.visible) {
+      autonomousTick();
       director.update(dt);
       hero.update(dt, t);
       // pieds au sol quand il est debout ou marche (le rig importé a sa propre hauteur de bassin)
+      hero.setLean(director.current && director.mode === 'activity' && (director.current.clip === 'Driving_Loop' || director.current.clip === 'Sitting_Idle_Loop' || director.current.ritual) ? 0 : 0.18);
       { const cur = director.current, seated = cur && (cur.clip === 'Driving_Loop' || cur.clip === 'Sitting_Idle_Loop' || cur.ritual) && director.mode === 'activity';
         if (hero.model && director.mode !== 'carried') {
           if (modelBaseY === null) modelBaseY = hero.model.position.y;
@@ -670,7 +733,7 @@ export async function createRoom(container, bubbleEl) {
       L.k += ((L.on ? 1 : 0) - L.k) * (1 - Math.exp(-dt * 8));
       L.glow.color.set(L.offColor).lerp(new THREE.Color(L.onColor), L.k);
       if (L.glow.update) L.glow.update(L.k);
-      L.light.intensity = L.k * (k === 'arc' ? 14 : k === 'beton' ? 1.6 : k === 'falk' ? 2.4 : 1.1);
+      L.light.intensity = L.k * (k === 'arc' ? 14 : k === 'beton' ? 0.9 : k === 'falk' ? 2.4 : 1.1);
     }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
@@ -685,5 +748,5 @@ export async function createRoom(container, bubbleEl) {
 
   const bbox = (id) => { const it = items.find((i) => i.id === id); const b = new THREE.Box3().setFromObject(it.holder); return [b.min.toArray(), b.max.toArray()].map((a) => a.map((v) => +v.toFixed(2))); };
   const toScreen = (x, y, z) => { const q = new THREE.Vector3(x, y, z).project(camera), r = el.getBoundingClientRect(); return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height]; };
-  return { crate, toScreen, bbox, activate, leave, director, nav, stations, floorY, goTo, lamps, view, target: tgt, opts, hero, ritual, tea, cs, scene, camera, renderer };
+  return { pauseAutonomy, crate, toScreen, bbox, activate, leave, director, nav, stations, floorY, goTo, lamps, view, target: tgt, opts, hero, ritual, tea, cs, scene, camera, renderer };
 }

@@ -4,7 +4,7 @@
 const TAU = Math.PI * 2;
 const angDiff = (a, b) => { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
 
-export function createDirector({ hero, ritual, nav, floorY, ui, speed = 1.25 }) {
+export function createDirector({ hero, ritual, nav, floorY, ui, speed = 0.9 }) {
   const g = hero.group, pos = g.position;
   let steps = [], step = null, cur = null, mode = 'idle', carryTo = null;
   const api = {
@@ -25,7 +25,7 @@ export function createDirector({ hero, ritual, nav, floorY, ui, speed = 1.25 }) 
   }
   function start(s) {
     s.t = 0;
-    if (s.k === 'walk') { hero.play('Walk_Loop', { fade: 0.2, speed: speed / 0.85 }); mode = 'walk'; }
+    if (s.k === 'walk') { hero.play('Walk_Loop', { fade: 0.2, speed: speed / 0.55 }); mode = 'walk'; }
     else if (s.k === 'glide') { s.from = { x: pos.x, y: pos.y, z: pos.z, yaw: g.rotation.y }; if (s.clip) hero.play(s.clip, { fade: 0.2 }); }
     else if (s.k === 'face' && !s.walkAnim) { if (mode === 'walk') { hero.play('Idle_Loop', { fade: 0.15 }); mode = 'turn'; } }
     if (s.k === 'fn') s.fn();

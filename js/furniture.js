@@ -1026,3 +1026,22 @@ export function usmDrawer(spec, coverTex, tracks, cover) {
     },
   };
 }
+
+/* ───────────── LAMPE BORNE BÉTON (Le Corbusier) ─────────────
+ * Modèle 3D Warehouse « Lampe Borne Béton - Le Corbusier » de Charles R. (béton banché, 0,30 × 0,31 × 0,215 m). Origine = centre du socle au sol.
+ * On le recentre et on ajoute une fente lumineuse sous le capot. */
+export function borneFromGltf(gltf, k = 1.0) {
+  const g = group();
+  const root = gltf.scene.clone(true); root.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(root), sc = k;
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; const m = o.material.clone(); o.material = m; m.roughness = 1; m.metalness = 0; } });
+  const glowM = new THREE.MeshBasicMaterial({ color: '#fff3d6', toneMapped: false, side: THREE.DoubleSide });
+  const slot = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.068), glowM);        // fente lumineuse sous le capot
+  slot.rotation.x = Math.PI / 2; slot.position.set(0.15, 0.1475, 0.234); root.add(slot);
+  const inner = group(root); inner.scale.setScalar(sc);
+  inner.position.set(-(bb.max.x + bb.min.x) / 2 * sc, -bb.min.y * sc, -(bb.max.z + bb.min.z) / 2 * sc);
+  g.add(inner);
+  g.userData.size = bb.getSize(new THREE.Vector3()).multiplyScalar(sc);
+  g.userData.glow = glowM;
+  return g;
+}

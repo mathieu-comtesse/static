@@ -100,7 +100,7 @@ export async function createCharacter({
   modelUrl = 'assets/mathieu-character.glb',
   rigUrl = 'assets/rig.json',
   animsUrl = 'assets/anims.glb',
-  targetHeight = 2.15,
+  targetHeight = 1.58,
 } = {}) {
   const [modelBuffer, rigBuffer, animBuffer] = await Promise.all([
     loadBuffer(modelUrl), loadBuffer(rigUrl), loadBuffer(animsUrl),
@@ -108,6 +108,10 @@ export async function createCharacter({
   const loader = new GLTFLoader();
   const parse = (b) => new Promise((res, rej) => loader.parse(b, '', res, rej));
   const [characterGltf, animGltf] = await Promise.all([parse(modelBuffer), parse(animBuffer)]);
+
+  // NB992_OPTIONAL : le modèle New Balance 992 (Sketchfab) se place dans assets/nb992.glb. Sans ce fichier, les chaussures d'origine restent.
+  let nb992Gltf = null;
+  try { nb992Gltf = await parse(await loadBuffer('assets/nb992.glb')); } catch (_) {}
   const rig = JSON.parse(new TextDecoder().decode(rigBuffer));
   const sourceRig = Object.fromEntries(rig.map((b) => [b.n, b]));
   const sourceRootQuat = qFromArray(sourceRig.root?.q || [0, 0, 0, 1]);
@@ -150,7 +154,7 @@ export async function createCharacter({
     else if (hairMaterials.has(m.name)) m.color.copy(chestnut);
     else if (hairDarkMaterials.has(m.name)) m.color.copy(chestnutDark);
     else if (frameMaterials.has(m.name)) m.color.copy(frameBlack);
-    if (m.name === 'Material #1167') { m.transparent = true; m.opacity = 0.7; m.depthWrite = false; }
+    if (m.name === 'Material #1167') { m.color.set('#f7fbff'); m.transparent = true; m.opacity = 0.13; m.depthWrite = false; m.roughness = 0.06; m.metalness = 0; }
     m.needsUpdate = true;
   };
   model.traverse((o) => {
@@ -174,6 +178,28 @@ export async function createCharacter({
   }
 
   const shoes = model.getObjectByName('shoes');
+  const nbShoes = [];
+  // Monte la paire de NB992 sur les os des pieds si le GLB est présent (normalisée à ~29 cm).
+  const attachNB992 = () => {
+    if (!nb992Gltf || !bones.foot_l || !bones.foot_r) return false;
+    const makeShoe = () => {
+      const root = nb992Gltf.scene.clone(true); root.updateMatrixWorld(true);
+      const bb = new THREE.Box3().setFromObject(root), sz = bb.getSize(new THREE.Vector3()), ctr = bb.getCenter(new THREE.Vector3());
+      root.position.sub(ctr);
+      if (sz.z > sz.x && sz.z >= sz.y) root.rotation.y = Math.PI / 2; else if (sz.y > sz.x && sz.y > sz.z) root.rotation.z = -Math.PI / 2;
+      root.updateMatrixWorld(true);
+      const sz2 = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+      root.scale.multiplyScalar(0.29 / Math.max(sz2.x, sz2.z, 1e-4));
+      root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      return root;
+    };
+    const L = makeShoe(), R = makeShoe();
+    L.position.set(0.075, -0.025, 0); R.position.set(0.075, -0.025, 0); L.rotation.z += Math.PI;
+    bones.foot_l.add(L); bones.foot_r.add(R); nbShoes.push(L, R);
+    if (shoes) shoes.visible = false;
+    return true;
+  };
+  attachNB992();
   const { can, canTip } = makeWateringCan(); group.add(can);
 
   // Retarget les 31 actions de la bibliothèque (rig Quaternius, axe d'os +Y) sur le rig FBX importé (axe d'os +X) : les deux squelettes n'ont pas les mêmes repères
@@ -244,11 +270,15 @@ export async function createCharacter({
   for (const a of characterGltf.animations || []) clips[a.name] = a.clone();
 
   const mixer = new THREE.AnimationMixer(group);
-  let action = null, base = 'neutral', blink = 0, nextBlink = 2, flash = 0, flashKind = null, talking = false;
-  let ov = null, ovW = 0, post = null;
+  let action = null, activeClipName = 'Idle_Loop', base = 'neutral', blink = 0, nextBlink = 2, flash = 0, flashKind = null, talking = false;
+
+  // GAIT_STABILIZER : pose neutre de référence pour que bassin et torse ne restent pas inclinés d'un côté après le retarget.
+  const gaitRest = {};
+  for (const n of ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01']) if (bones[n]) gaitRest[n] = bones[n].quaternion.clone();
+  let ov = null, ovW = 0, post = null, lean = 0, leanW = 0;
 
   const _pq = new THREE.Quaternion(), _qg = new THREE.Quaternion(), _R = new THREE.Quaternion(), _M = new THREE.Quaternion(), _v = new THREE.Vector3();
-  const _X = new THREE.Vector3(1, 0, 0), _AIM = new THREE.Vector3(1, 0, 0), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
+  const _Z = new THREE.Vector3(0, 0, 1), _X = new THREE.Vector3(1, 0, 0), _AIM = new THREE.Vector3(1, 0, 0), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
   const applyWorldRot = (bone, qWorld) => {
     bone.parent.getWorldQuaternion(_pq);
     _M.copy(_pq).invert().multiply(qWorld).multiply(_pq);
@@ -301,6 +331,7 @@ export async function createCharacter({
     group, model, bones, skeleton, can, canTip, head: bones.Head, clips: Object.keys(clips), rotChar, aim, ik2, wp, mixer, lookAtPointer, lookAtTilt, resetLook,
     play(name, { fade = 0.25, speed = 1 } = {}) {
       const clip = clips[name] || clips.Idle_Loop || Object.values(clips)[0]; if (!clip) return;
+      activeClipName = clip.name || name;
       const next = mixer.clipAction(clip); next.setEffectiveTimeScale(speed); next.reset().fadeIn(fade).play();
       if (action && action !== next) action.fadeOut(fade); action = next;
     },
@@ -308,16 +339,24 @@ export async function createCharacter({
     setBase(kind) { base = kind; setFace(base); },
     setOverride(o) { ov = o; if (o) ovW = 0; },
     setPost(fn) { post = fn; },
-    setShoes(on) { if (shoes) shoes.visible = on; },
+    setShoes(on) { if (nbShoes.length) nbShoes.forEach((s) => { s.visible = on; }); else if (shoes) shoes.visible = on; },
     flash(kind, secs = 0.7) { flashKind = kind; flash = secs; },
     talk(on) { talking = on; },
     setDeviceTilt(on) { portrait.deviceTilt = !!on; if (!on) resetLook(); },
     setHoverExpression(on) { portrait.hover = !!on; },
     setAmazed(on) { portrait.amazed = !!on; },
+    setLean(v) { lean = v; },
     setHeadOnly() {},
     setHeadScale() {},
     update(dt, t) {
       mixer.update(dt); group.updateMatrixWorld(true);
+
+      // GAIT_STABILIZER : réduit le roulis latéral du retarget, en gardant balancement des bras, flexion des genoux et pas.
+      if (/Walk|Jog|Sprint/i.test(activeClipName)) {
+        const weights = { pelvis: 0.11, spine_01: 0.07, spine_02: 0.055, spine_03: 0.045, neck_01: 0.035 };
+        for (const [n, w] of Object.entries(weights)) if (bones[n] && gaitRest[n]) bones[n].quaternion.slerp(gaitRest[n], w);
+        group.updateMatrixWorld(true);
+      }
       if (ov) {
         ovW += (1 - ovW) * (1 - Math.exp(-dt * 7));
         if (ov.lean) for (const n of ['spine_01','spine_02','spine_03']) if (bones[n]) rotChar(bones[n], ov.lean * ovW / 3);
@@ -328,6 +367,8 @@ export async function createCharacter({
         if (ov.head && bones.Head) rotChar(bones.Head, ov.head * ovW);
       }
       if (post) post(dt, t);
+      leanW += (lean - leanW) * (1 - Math.exp(-dt * 6));
+      if (Math.abs(leanW) > 1e-3) for (const n of ['spine_01', 'spine_02', 'spine_03']) if (bones[n]) rotChar(bones[n], leanW / 3, _Z);        // redresse le buste (le rig importé penche d'un côté en marchant)
       if (portrait.enabled && bones.Head) {
         const kLook = 1 - Math.exp(-dt * portrait.damping);
         portrait.x += (portrait.targetX - portrait.x) * kLook;
