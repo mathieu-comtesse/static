@@ -1,5 +1,5 @@
 import { THREE, mat, rng, loadBuffer } from './kit.js';
-import { mergeGeometries } from 'three/addons/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/addons/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/GLTFLoader.js';
 
 /* Personnage reconstruit d'après l'analyse du « Shupi » de shujaat.info (proportions mesurées, pièces séparées, style facetté) :
@@ -9,10 +9,10 @@ import { GLTFLoader } from 'three/addons/GLTFLoader.js';
  *   Squelette : os du rig de ton dépôt (cv-mathieu_comtesse), longueurs ajustées aux proportions du modèle ; animations : anims.glb. */
 
 const C = {
-  skin: '#b0691f', skinShade: '#86501b', hair: '#0b080b', hairB: '#17121a', beard: '#0d0a0d', brow: '#0a070a',
-  tee: '#fffce6', jacket: '#94afdb', jacketD: '#4565bd', lining: '#2a3a8a', pants: '#1f2a4d', pantsL: '#2a3a68',
+  skin: '#a76720', skinShade: '#7a4a17', hair: '#050406', hairB: '#0d0a10', beard: '#050406', brow: '#0a070a',
+  tee: '#fcfae2', jacket: '#8aa5d1', jacketD: '#4565bd', lining: '#2a3a8a', pants: '#1c2542', pantsL: '#252f58',
   red: '#8f1d0a', redD: '#4a0e05', sole: '#d9d19a', heel: '#4a5348', tongue: '#ded8a2', badge: '#101114', lanyard: '#a5c82a',
-  frame: '#a29d95', lens: '#8aa5d1', eye: '#35232f', mouth: '#c4703f',
+  frame: '#a29d95', lens: '#7b95bd', eye: '#35232f', mouth: '#c4703f',
 };
 
 /* ─── plaque d'expression : yeux rectangulaires sombres + bouche cuivrée, comme les « face_*.png » du modèle ─── */
@@ -22,12 +22,10 @@ function faceTexture(kind) {
   const g = c.getContext('2d');
   const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
   px(0, 0, FW, FH, C.skin);
-  // barbe noire : joues, menton, moustache ; la bouche reste dégagée
-  for (let y = 24; y < FH; y++) for (let x = 0; x < FW; x++) {
-    const side = x < 6 || x > FW - 7, low = y > 42, must = y >= 30 && y < 34 && x > 12 && x < FW - 13;
-    if (side && y > 34 || low || must) px(x, y, 1, 1, C.beard);
-  }
-  px(15, 34, 18, 3, C.skin); px(14, 36, 20, 1, C.skin);                // contour de la bouche
+  // barbe noire en U : tout le bas du visage, sauf une plaque de peau autour de la bouche
+  px(0, 30, FW, FH - 30, C.beard);
+  px(0, 24, 7, 8, C.beard); px(FW - 7, 24, 7, 8, C.beard);
+  px(15, 38, 18, 7, C.skin); px(14, 39, 20, 5, C.skin); px(16, 45, 16, 1, C.skin);
   px(21, 26, 6, 6, C.skinShade);                                        // nez
   const eyeY = 16, ex = [13, 33];
   const eyes = {
@@ -37,14 +35,14 @@ function faceTexture(kind) {
   };
   (eyes[kind] || (() => ex.forEach((x) => px(x - 2, eyeY, 4, 9, C.eye))))();
   const mouth = {
-    neutral: () => { px(18, 35, 12, 2, C.mouth); },
-    blink: () => { px(18, 35, 12, 2, C.mouth); },
-    happy: () => { px(16, 34, 16, 5, '#f26a45'); px(17, 34, 14, 1.5, '#fbf6ee'); px(19, 37, 10, 2, '#f19a8a'); },
-    amazed: () => { px(19, 34, 10, 6, '#f26a45'); px(21, 35, 6, 1.5, '#fbf6ee'); },
-    talkA: () => { px(16, 34, 16, 7, '#8f1c05'); px(17, 34, 14, 1.5, '#fbf6ee'); px(20, 38, 8, 2, '#f08a78'); },
-    talkO: () => { px(20, 34, 8, 7, '#8f1c05'); px(21, 34, 6, 1.5, '#fbf6ee'); },
-    sip: () => { px(21, 35, 6, 4, C.mouth); px(20, 36, 8, 2, C.mouth); },
-  }[kind] || (() => px(18, 35, 12, 2, C.mouth));
+    neutral: () => { px(18, 41, 12, 2, C.mouth); },
+    blink: () => { px(18, 41, 12, 2, C.mouth); },
+    happy: () => { px(16, 39, 16, 5, '#f26a45'); px(17, 39, 14, 1.5, '#fbf6ee'); px(19, 42, 10, 2, '#f19a8a'); },
+    amazed: () => { px(19, 38, 10, 6, '#f26a45'); px(21, 39, 6, 1.5, '#fbf6ee'); },
+    talkA: () => { px(16, 38, 16, 7, '#8f1c05'); px(17, 38, 14, 1.5, '#fbf6ee'); px(20, 42, 8, 2, '#f08a78'); },
+    talkO: () => { px(20, 38, 8, 7, '#8f1c05'); px(21, 38, 6, 1.5, '#fbf6ee'); },
+    sip: () => { px(21, 40, 6, 4, C.mouth); px(20, 41, 8, 2, C.mouth); },
+  }[kind] || (() => px(18, 41, 12, 2, C.mouth));
   mouth();
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
@@ -60,10 +58,22 @@ function cbox(w, h, d, c = 0.02) {              // boîte chanfreinée, centrée
   g.translate(0, 0, -depth / 2);
   return g;
 }
-function frus(wt, wb, h, dt, db) {              // tronc de pyramide rectangulaire (haut/bas distincts)
-  const g = new THREE.CylinderGeometry(0.5, 0.5, h, 4, 1); g.rotateY(Math.PI / 4);
-  const p = g.attributes.position, k = Math.SQRT2;
-  for (let i = 0; i < p.count; i++) { const top = p.getY(i) > 0; p.setX(i, p.getX(i) * k * (top ? wt : wb)); p.setZ(i, p.getZ(i) * k * (top ? dt : db)); }
+function frus(wt, wb, h, dt, db, n = 4) {      // tronc de pyramide à n côtés (haut/bas distincts), dimensions exactes
+  const g = new THREE.CylinderGeometry(0.5, 0.5, h, n, 1); g.rotateY(Math.PI / n);
+  const p = g.attributes.position;
+  let mxT = 0, mzT = 0, mxB = 0, mzB = 0;
+  for (let i = 0; i < p.count; i++) { const top = p.getY(i) > 0; if (top) { mxT = Math.max(mxT, Math.abs(p.getX(i))); mzT = Math.max(mzT, Math.abs(p.getZ(i))); } else { mxB = Math.max(mxB, Math.abs(p.getX(i))); mzB = Math.max(mzB, Math.abs(p.getZ(i))); } }
+  for (let i = 0; i < p.count; i++) { const top = p.getY(i) > 0; p.setX(i, p.getX(i) / (top ? mxT : mxB) * (top ? wt : wb) / 2); p.setZ(i, p.getZ(i) / (top ? mzT : mzB) * (top ? dt : db) / 2); }
+  g.computeVertexNormals(); return g;
+}
+/** Profil latéral extrudé en largeur (axe x), effilé vers l'avant ; pts = [z, y] ; largeur w ; z devant = + */
+function loft(pts, w, bevel = 0.01, taper = 0.78, tz0 = -0.05, tz1 = 0.145) {
+  const sh = new THREE.Shape(); pts.forEach(([z, y], i) => (i ? sh.lineTo(z, y) : sh.moveTo(z, y)));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: w - 2 * bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: 1 });
+  g.translate(0, 0, -(w - 2 * bevel) / 2);
+  g.rotateY(-Math.PI / 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const t = Math.min(1, Math.max(0, (p.getZ(i) - tz0) / (tz1 - tz0))); p.setX(i, p.getX(i) * (1 - (1 - taper) * t * t * (3 - 2 * t))); }
   g.computeVertexNormals(); return g;
 }
 function spike(w, h, d) { const g = new THREE.ConeGeometry(0.5, h, 4, 1); g.rotateY(Math.PI / 4); g.scale(w * Math.SQRT2, 1, d * Math.SQRT2); return g; }
@@ -84,9 +94,9 @@ export async function createCharacter({ rigUrl = 'assets/rig.json', animsUrl = '
   }
   group.add(bones.root);
   const TARGET = {                                          // positions monde au repos (pose en T), en mètres ; côté gauche (+x), miroir pour la droite
-    pelvis: [0, 0.64, -0.02], spine_01: [0, 0.72, -0.02], spine_02: [0, 0.835, -0.02], spine_03: [0, 0.955, -0.02], neck_01: [0, 1.06, -0.02], Head: [0, 1.12, -0.01],
-    clavicle: [0.02, 1.0, -0.01], upperarm: [0.19, 0.995, -0.03], lowerarm: [0.4, 0.995, -0.03], hand: [0.53, 0.995, -0.03],
-    thigh: [0.16, 0.66, -0.02], calf: [0.165, 0.45, -0.02], foot: [0.17, 0.235, -0.03], ball: [0.17, 0.15, 0.08],
+    pelvis: [0, 0.64, -0.05], spine_01: [0, 0.72, -0.05], spine_02: [0, 0.835, -0.05], spine_03: [0, 0.955, -0.05], neck_01: [0, 1.06, -0.05], Head: [0, 1.12, -0.04],
+    clavicle: [0.02, 1.0, -0.04], upperarm: [0.19, 0.995, -0.05], lowerarm: [0.4, 0.995, -0.05], hand: [0.53, 0.995, -0.05],
+    thigh: [0.14, 0.66, -0.045], calf: [0.155, 0.45, -0.08], foot: [0.17, 0.25, -0.125], ball: [0.2, 0.06, 0.06],
   };
   group.updateMatrixWorld(true);
   for (const b of rig) {
@@ -104,6 +114,7 @@ export async function createCharacter({ rigUrl = 'assets/rig.json', animsUrl = '
   /* ── pièces rigides, chacune liée à un os ── */
   const buckets = new Map();
   const part = (bone, geo, x, y, z, color, o = {}) => {
+    if (o.jit) { const P = geo.attributes.position; const h = (a, b, c, k) => { const v = Math.sin(a * 127.1 + b * 311.7 + c * 74.7 + k * 19.19) * 43758.5453; return (v - Math.floor(v) - 0.5) * 2; }; for (let i = 0; i < P.count; i++) { const X = P.getX(i), Y = P.getY(i), Z = P.getZ(i); P.setXYZ(i, X + h(X, Y, Z, 1) * o.jit, Y + h(X, Y, Z, 2) * o.jit, Z + h(X, Y, Z, 3) * o.jit); } }
     if (o.rot) geo.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...o.rot)));
     geo.translate(x, y, z);
     if (o.yaw) { const [cx, cz, a] = o.yaw; geo.translate(-cx, 0, -cz); geo.rotateY(a); geo.translate(cx, 0, cz); }
@@ -121,99 +132,107 @@ export async function createCharacter({ rigUrl = 'assets/rig.json', animsUrl = '
   };
   const rr = rng(8), jit = (a) => (rr() - 0.5) * a;
 
-  /* ── tête (face carrée en pyramide tronquée), oreilles, nez, cou ── */
-  part('Head', frus(0.35, 0.29, 0.29, 0.31, 0.27), 0, 1.235, 0.065, C.skin, { mesh: 'skin' });
-  part('Head', cbox(0.04, 0.045, 0.04, 0.008), 0, 1.205, 0.235, C.skinShade, { mesh: 'skinShade' });                // nez
+  /* ── tête : face en pyramide tronquée (cotes mesurées : ±0,20 aux yeux, ±0,155 à la mâchoire, menton à y = 1,10), oreilles, nez, cou ── */
+  part('Head', frus(0.36, 0.32, 0.08, 0.34, 0.31, 6), 0, 1.23, 0.03, C.skin, { mesh: 'skin' });
+  part('Head', frus(0.32, 0.26, 0.095, 0.31, 0.26, 6), 0, 1.1425, 0.025, C.beard, { mesh: 'beard' });                 // mâchoire en barbe
+  part('Head', frus(0.36, 0.36, 0.14, 0.34, 0.36, 8), 0, 1.3, 0.025, C.skin, { mesh: 'skin' });
+  part('Head', cbox(0.04, 0.05, 0.03, 0.008), 0, 1.2, 0.205, C.skinShade, { mesh: 'skinShade' });                    // nez
   for (const s of [-1, 1]) {
-    part('Head', cbox(0.04, 0.085, 0.07, 0.012), s * 0.19, 1.245, 0.02, C.skin, { mesh: 'skin' });
-    part('Head', cbox(0.02, 0.05, 0.04, 0.006), s * 0.198, 1.245, 0.03, C.skinShade, { mesh: 'skinShade' });
+    part('Head', cbox(0.03, 0.09, 0.07, 0.012), s * 0.178, 1.25, -0.01, C.skin, { mesh: 'skin' });
+    part('Head', cbox(0.02, 0.05, 0.04, 0.006), s * 0.186, 1.25, 0.0, C.skinShade, { mesh: 'skinShade' });
   }
-  part('neck_01', cbox(0.13, 0.1, 0.12, 0.02), 0, 1.075, -0.01, C.skinShade, { mesh: 'skinShade' });
+  part('neck_01', cbox(0.13, 0.1, 0.12, 0.02), 0, 1.075, -0.04, C.skinShade, { mesh: 'skinShade' });
 
-  /* ── barbe noire : mâchoires et menton ── */
-  part('Head', frus(0.28, 0.22, 0.07, 0.1, 0.08), 0, 1.1, 0.15, C.beard, { mesh: 'beard' });
-  for (const s of [-1, 1]) part('Head', cbox(0.05, 0.15, 0.22, 0.018), s * 0.178, 1.15, 0.07, C.beard, { mesh: 'beard' });
+  /* ── barbe noire en U : favoris le long de la mâchoire (le bas du visage est noir, la plaque de peau entoure la bouche) ── */
+  for (const s of [-1, 1]) part('Head', cbox(0.03, 0.1, 0.19, 0.01), s * 0.168, 1.225, 0.045, C.beard, { mesh: 'beard' });
+  part('Head', cbox(0.2, 0.03, 0.04, 0.01), 0, 1.095, 0.13, C.beard, { mesh: 'beard' });
 
-  /* ── cheveux noirs : grosse coupe en bol facettée (calotte, nuque, mèches latérales, frange droite) ── */
-  const hk = (x, y, z, w, h, d, rot, key = 'hair') => part('Head', frus(w * 0.8, w, h, d * 0.8, d), x, y, z, key === 'hair' ? C.hair : C.hairB, { mesh: key, rot });
-  part('Head', frus(0.34, 0.45, 0.17, 0.34, 0.44), 0, 1.4, -0.01, C.hair, { mesh: 'hair' });                       // calotte
-  part('Head', frus(0.44, 0.4, 0.19, 0.12, 0.1), 0, 1.265, -0.205, C.hair, { mesh: 'hair' });                       // nuque
+  /* ── cheveux noirs : bol à étages irréguliers (±0,27 à y = 1,35, sommet ±0,22 à 1,54), nuque jusqu'à la mâchoire, mèches pointues sur le front ── */
+  const J = 0.014;
+  part('Head', frus(0.5, 0.54, 0.09, 0.43, 0.45, 8), 0, 1.355, -0.01, C.hair, { mesh: 'hair', jit: J });
+  part('Head', frus(0.42, 0.5, 0.09, 0.36, 0.43, 8), 0, 1.44, -0.01, C.hair, { mesh: 'hair', jit: J });
+  part('Head', frus(0.22, 0.4, 0.085, 0.2, 0.34, 8), 0, 1.525, -0.01, C.hairB, { mesh: 'hairB', jit: J });
+  part('Head', frus(0.34, 0.4, 0.2, 0.1, 0.12, 6), 0, 1.2, -0.165, C.hair, { mesh: 'hair', jit: 0.01 });                  // nuque
   for (const s of [-1, 1]) {
-    part('Head', frus(0.09, 0.12, 0.2, 0.3, 0.3), s * 0.21, 1.31, 0.0, C.hair, { mesh: 'hair' });                  // côtés, devant les oreilles
-    hk(s * 0.17, 1.305, 0.19, 0.1, 0.1, 0.07, [0.15, 0, s * 0.1], 'hairB');                                         // pattes
+    part('Head', frus(0.1, 0.12, 0.13, 0.26, 0.3, 6), s * 0.205, 1.375, -0.01, C.hair, { mesh: 'hair', jit: 0.008 });     // tempes
+    part('Head', frus(0.05, 0.07, 0.1, 0.24, 0.28, 6), s * 0.165, 1.28, -0.05, C.hairB, { mesh: 'hairB', jit: 0.008 });
   }
-  for (let i = 0; i < 5; i++) hk(-0.16 + i * 0.08, 1.37 - Math.abs(i - 2) * 0.008, 0.2, 0.115, 0.1, 0.06, [0.2, 0, (i - 2) * 0.07], i % 2 ? 'hair' : 'hairB');    // frange droite
-  for (let i = 0; i < 4; i++) part('Head', spike(0.12, 0.06 + (i % 2) * 0.03, 0.12), -0.12 + i * 0.08, 1.5, -0.02 + (i % 2) * 0.06, C.hair, { mesh: 'hair', rot: [0.1, i, (i - 1.5) * 0.15] });   // mèches du dessus
-  for (const s of [-1, 1]) part('Head', cbox(0.14, 0.017, 0.02, 0.005), s * 0.092, 1.305, 0.222, C.brow, { mesh: 'brow' });   // sourcils
+  part('Head', frus(0.4, 0.42, 0.1, 0.07, 0.07, 8), 0, 1.35, 0.2, C.hair, { mesh: 'hair', jit: 0.008 });
+  const loc = [[-0.18, 0.1, 0.13, 0.2], [-0.12, 0.1, 0.17, 0.14], [-0.05, 0.11, 0.2, 0.06], [0.02, 0.12, 0.23, 0.0], [0.09, 0.11, 0.19, -0.08], [0.16, 0.1, 0.15, -0.16], [0.215, 0.08, 0.12, -0.22]];
+  loc.forEach(([x, w, h, rz], i) => part('Head', spike(w, h, 0.1), x, 1.305 + h / 2 + 0.0, 0.205, i % 2 ? C.hair : C.hairB, { mesh: i % 2 ? 'hair' : 'hairB', rot: [Math.PI + 0.12, 0, rz], jit: 0.006 }));   // frange : pointes vers le bas
+  part('Head', spike(0.2, 0.1, 0.16), -0.02, 1.4, 0.2, C.hair, { mesh: 'hair', rot: [-Math.PI / 2 - 0.15, 0, 0] });
+  for (const s of [-1, 1]) part('Head', cbox(0.12, 0.017, 0.02, 0.005), s * 0.084, 1.27, 0.2, C.brow, { mesh: 'brow' });         // sourcils
 
   /* ── lunettes octogonales à monture claire et verres bleutés ── */
   const octRing = (R, r, depth) => { const sh = new THREE.Shape(), ho = new THREE.Path(); for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2; (i ? sh.lineTo : sh.moveTo).call(sh, Math.cos(a) * R, Math.sin(a) * R); (i ? ho.lineTo : ho.moveTo).call(ho, Math.cos(a) * r, Math.sin(a) * r); } sh.closePath(); ho.closePath(); sh.holes.push(ho); return new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false }); };
   const octDisc = (R, depth) => { const sh = new THREE.Shape(); for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2; (i ? sh.lineTo : sh.moveTo).call(sh, Math.cos(a) * R, Math.sin(a) * R); } sh.closePath(); return new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false }); };
   for (const s of [-1, 1]) {
-    part('Head', octRing(0.07, 0.054, 0.02), s * 0.084, 1.246, 0.222, C.frame, { mesh: 'frame' });
-    part('Head', octDisc(0.056, 0.004), s * 0.084, 1.246, 0.232, '#aac2e8', { mesh: 'lens', glass: true });
-    part('Head', cbox(0.02, 0.014, 0.17, 0.004), s * 0.158, 1.262, 0.13, C.frame, { mesh: 'frame' });          // branches
+    part('Head', octRing(0.078, 0.059, 0.022), s * 0.078, 1.228, 0.206, C.frame, { mesh: 'frame' });
+    part('Head', octDisc(0.062, 0.004), s * 0.078, 1.228, 0.218, C.lens, { mesh: 'lens', glass: true });
+    part('Head', cbox(0.02, 0.014, 0.17, 0.004), s * 0.155, 1.25, 0.12, C.frame, { mesh: 'frame' });                // branches
   }
-  part('Head', cbox(0.03, 0.012, 0.012, 0.003), 0, 1.262, 0.232, C.frame, { mesh: 'frame' });                   // pont
+  part('Head', cbox(0.04, 0.014, 0.014, 0.003), 0, 1.24, 0.222, C.frame, { mesh: 'frame' });                        // pont
 
-  /* ── buste : tee-shirt crème, veste ouverte courte (dos, côtés, pans, col) ── */
-  part('spine_02', cbox(0.27, 0.4, 0.25, 0.03), 0, 0.915, -0.03, C.tee, { mesh: 'shirt' });
-  part('spine_02', cbox(0.37, 0.42, 0.06, 0.02), 0, 0.9, -0.16, C.jacket, { mesh: 'jacket' });
+  /* ── buste : tee-shirt, veste ouverte courte à col relevé (hem ±0,23 à y = 0,65, épaules ±0,41) ── */
+  const TZ = -0.05;
+  part('spine_02', cbox(0.3, 0.42, 0.25, 0.03), 0, 0.9, TZ + 0.0, C.tee, { mesh: 'shirt' });
+  part('spine_02', cbox(0.4, 0.46, 0.06, 0.02), 0, 0.89, TZ - 0.135, C.jacket, { mesh: 'jacket' });
   for (const s of [-1, 1]) {
-    part('spine_02', frus(0.075, 0.09, 0.42, 0.26, 0.28), s * 0.165, 0.9, -0.035, C.jacketD, { mesh: 'jacketD' });
-    part('spine_02', frus(0.14, 0.16, 0.41, 0.07, 0.07), s * 0.12, 0.9, 0.085, C.jacket, { mesh: 'jacket', rot: [0, -s * 0.08, 0] });
-    part('spine_03', frus(0.1, 0.14, 0.05, 0.1, 0.14), s * 0.09, 1.135, 0.04, C.jacket, { mesh: 'jacket', rot: [-0.25, -s * 0.5, s * 0.25] });
+    part('spine_02', frus(0.07, 0.1, 0.46, 0.27, 0.3), s * 0.185, 0.89, TZ - 0.005, C.jacketD, { mesh: 'jacketD' });
+    part('spine_02', frus(0.12, 0.145, 0.45, 0.07, 0.07), s * 0.135, 0.89, TZ + 0.1, C.jacket, { mesh: 'jacket', rot: [0, -s * 0.08, 0] });
+    part('spine_03', frus(0.1, 0.16, 0.05, 0.1, 0.17), s * 0.11, 1.12, TZ + 0.07, C.jacket, { mesh: 'jacket', rot: [-0.3, -s * 0.55, s * 0.3] });   // revers de col
   }
-  part('spine_03', cbox(0.38, 0.07, 0.27, 0.025), 0, 1.06, -0.03, C.jacket, { mesh: 'jacket' });
-  part('spine_03', cbox(0.26, 0.04, 0.2, 0.01), 0, 1.1, -0.075, C.lining, { mesh: 'lining' });
+  part('spine_03', cbox(0.42, 0.07, 0.3, 0.025), 0, 1.04, TZ - 0.005, C.jacket, { mesh: 'jacket' });
+  part('spine_03', cbox(0.3, 0.05, 0.3, 0.02), 0, 1.095, TZ - 0.04, C.jacket, { mesh: 'jacket' });
+  part('spine_03', cbox(0.26, 0.04, 0.2, 0.01), 0, 1.1, TZ - 0.075, C.lining, { mesh: 'lining' });
 
-  /* ── bassin, short cargo : deux jambes évasées, revers, poches ; badge au cordon ── */
-  part('pelvis', cbox(0.4, 0.15, 0.26, 0.03), 0, 0.705, -0.02, C.pants, { mesh: 'legs' });
-  part('pelvis', cbox(0.05, 0.085, 0.01, 0.003), -0.1, 0.655, 0.125, C.badge, { mesh: 'badge' });
-  part('pelvis', cbox(0.012, 0.03, 0.012, 0.002), -0.1, 0.71, 0.12, '#8d9aa5', { mesh: 'clip' });
-  part('pelvis', cbox(0.006, 0.12, 0.006, 0.001), -0.098, 0.67, 0.133, C.lanyard, { mesh: 'lanyard' });
+  /* ── bassin, short cargo : jambes inclinées vers l'arrière comme le modèle (cuisse x ±0,24 / z −0,16..0,07 ; revers x 0,04..0,31 / z −0,25..0,01) ── */
+  part('pelvis', cbox(0.42, 0.15, 0.27, 0.03), 0, 0.705, TZ + 0.0, C.pants, { mesh: 'legs' });
+  part('pelvis', cbox(0.05, 0.085, 0.01, 0.003), -0.1, 0.655, TZ + 0.14, C.badge, { mesh: 'badge' });
+  part('pelvis', cbox(0.012, 0.03, 0.012, 0.002), -0.1, 0.71, TZ + 0.135, '#8d9aa5', { mesh: 'clip' });
+  part('pelvis', cbox(0.006, 0.12, 0.006, 0.001), -0.098, 0.67, TZ + 0.148, C.lanyard, { mesh: 'lanyard' });
   for (const s of [-1, 1]) {
     const sd = s === 1 ? 'l' : 'r';
-    const hx = s * 0.135, fx = s * 0.175, yawF = -s * 0.22;            // pointe des pieds vers l'extérieur
-    part('thigh_' + sd, frus(0.17, 0.2, 0.25, 0.22, 0.24), hx, 0.6, -0.02, C.pants, { mesh: 'legs' });
-    part('thigh_' + sd, cbox(0.05, 0.13, 0.16, 0.012), s * 0.225, 0.56, -0.02, C.pantsL, { mesh: 'legsL' });         // poche cargo latérale
-    part('thigh_' + sd, cbox(0.1, 0.1, 0.025, 0.008), hx + s * 0.02, 0.5, 0.115, C.pantsL, { mesh: 'legsL' });       // poche avant
-    part('calf_' + sd, frus(0.2, 0.25, 0.19, 0.24, 0.27), hx + s * 0.014, 0.39, -0.02, C.pants, { mesh: 'legs' });
-    part('calf_' + sd, frus(0.25, 0.275, 0.075, 0.27, 0.29), hx + s * 0.02, 0.305, -0.02, C.pantsL, { mesh: 'legsL' });   // revers
-    part('calf_' + sd, cbox(0.1, 0.07, 0.1, 0.015), fx, 0.245, -0.03, C.skinShade, { mesh: 'skinShade' });           // cheville
-    // baskets montantes (≈ 0,24 × 0,36 × 0,30 m) : semelle crème épaisse, tige rouge, bout, languette, talon sombre
-    const Y = { yaw: [fx, 0.02, yawF] };
-    part('foot_' + sd, cbox(0.23, 0.055, 0.37, 0.018), fx, 0.0275, 0.04, C.sole, { mesh: 'sole', ...Y });
-    part('foot_' + sd, cbox(0.205, 0.2, 0.2, 0.025), fx, 0.17, -0.04, C.red, { mesh: 'red', ...Y });
-    part('foot_' + sd, cbox(0.18, 0.05, 0.19, 0.015), fx, 0.285, -0.04, C.redD, { mesh: 'redD', ...Y });
-    part('foot_' + sd, frus(0.18, 0.215, 0.1, 0.16, 0.2), fx, 0.105, 0.125, C.red, { mesh: 'red', ...Y });
-    part('foot_' + sd, frus(0.17, 0.21, 0.09, 0.1, 0.16), fx, 0.1, 0.225, C.red, { mesh: 'red', ...Y });
-    part('foot_' + sd, cbox(0.11, 0.03, 0.09, 0.01), fx, 0.158, 0.17, C.sole, { mesh: 'sole', ...Y });                // bout renforcé crème
-    part('foot_' + sd, frus(0.1, 0.15, 0.16, 0.025, 0.13), fx, 0.225, 0.04, C.tongue, { mesh: 'tongue', rot: [0.5, 0, 0], ...Y });
-    part('foot_' + sd, frus(0.11, 0.16, 0.1, 0.07, 0.09), fx, 0.095, -0.18, C.heel, { mesh: 'heel', ...Y });
+    const fx = s * 0.21, yawF = -s * 0.25;                            // pointe des pieds vers l'extérieur
+    part('thigh_' + sd, frus(0.2, 0.22, 0.25, 0.22, 0.22, 8), s * 0.14, 0.57, -0.065, C.pants, { mesh: 'legs' });
+    part('thigh_' + sd, cbox(0.05, 0.13, 0.15, 0.012), s * 0.225, 0.56, -0.07, C.pantsL, { mesh: 'legsL' });          // poche cargo latérale
+    part('thigh_' + sd, cbox(0.1, 0.1, 0.02, 0.008), s * 0.15, 0.5, 0.04, C.pantsL, { mesh: 'legsL' });              // poche avant
+    part('calf_' + sd, frus(0.22, 0.24, 0.19, 0.22, 0.24, 8), s * 0.15, 0.37, -0.105, C.pants, { mesh: 'legs' });
+    part('calf_' + sd, frus(0.24, 0.255, 0.085, 0.24, 0.26, 8), s * 0.165, 0.26, -0.125, C.pantsL, { mesh: 'legsL' });     // revers
+    // baskets hautes (mesures du modèle) : une seule forme en pente — bout bas, cheville haute — sur semelle crème fine, talon gris derrière
+    const Y = { yaw: [fx, -0.06, yawF] }, oy = 0.012;
+    part('foot_' + sd, loft([[-0.235, oy], [0.125, oy], [0.13, oy + 0.04], [-0.24, oy + 0.045]], 0.225, 0.012, 0.8, -0.05, 0.12), fx, 0, 0, C.sole, { mesh: 'sole', ...Y });
+    part('foot_' + sd, loft([[-0.225, oy + 0.045], [0.11, oy + 0.045], [0.125, oy + 0.075], [0.09, oy + 0.115], [0.03, oy + 0.15], [-0.01, oy + 0.225], [-0.03, oy + 0.31], [-0.19, oy + 0.315], [-0.225, oy + 0.26]], 0.195, 0.015, 0.8, -0.05, 0.12), fx, 0, 0, C.red, { mesh: 'red', ...Y });
+    part('foot_' + sd, loft([[-0.19, oy + 0.285], [-0.03, oy + 0.285], [-0.03, oy + 0.32], [-0.195, oy + 0.325]], 0.2, 0.01, 1), fx, 0, 0, C.redD, { mesh: 'redD', ...Y });
+    part('foot_' + sd, loft([[0.05, oy + 0.045], [0.13, oy + 0.045], [0.135, oy + 0.085], [0.08, oy + 0.1]], 0.16, 0.01, 0.8, -0.05, 0.12), fx, 0, 0, C.sole, { mesh: 'sole', ...Y });
+    part('foot_' + sd, loft([[-0.04, oy + 0.2], [0.02, oy + 0.2], [0.0, oy + 0.34], [-0.06, oy + 0.335]], 0.1, 0.012, 1), fx, 0, 0, C.tongue, { mesh: 'tongue', ...Y });
+    part('foot_' + sd, loft([[-0.275, oy + 0.04], [-0.215, oy + 0.04], [-0.215, oy + 0.16], [-0.27, oy + 0.135]], 0.16, 0.012, 1), fx, 0, 0, C.heel, { mesh: 'heel', ...Y });
     // chaussettes tabi (rituel du thé)
-    part('foot_' + sd, cbox(0.12, 0.07, 0.26, 0.02), fx, 0.05, 0.07, '#f4f1ea', { mesh: 'tabi', ...Y });
-    part('foot_' + sd, cbox(0.05, 0.05, 0.08, 0.015), fx - 0.032, 0.035, 0.21, '#f4f1ea', { mesh: 'tabi', ...Y });
-    part('foot_' + sd, cbox(0.05, 0.05, 0.08, 0.015), fx + 0.032, 0.035, 0.21, '#f4f1ea', { mesh: 'tabi', ...Y });
-    part('calf_' + sd, cbox(0.1, 0.17, 0.1, 0.015), fx, 0.17, -0.03, C.skin, { mesh: 'skin' });
+    part('foot_' + sd, cbox(0.12, 0.07, 0.26, 0.02), fx, 0.05, -0.05, '#f4f1ea', { mesh: 'tabi', ...Y });
+    part('foot_' + sd, cbox(0.05, 0.05, 0.08, 0.015), fx - 0.032, 0.035, 0.09, '#f4f1ea', { mesh: 'tabi', ...Y });
+    part('foot_' + sd, cbox(0.05, 0.05, 0.08, 0.015), fx + 0.032, 0.035, 0.09, '#f4f1ea', { mesh: 'tabi', ...Y });
+    part('calf_' + sd, cbox(0.1, 0.17, 0.1, 0.015), s * 0.17, 0.17, -0.125, C.skin, { mesh: 'skin' });
   }
 
   /* ── bras : manche courte à revers sombre, avant-bras fin, main en coin (poing) ── */
   for (const s of [-1, 1]) {
     const sd = s === 1 ? 'l' : 'r';
-    part('upperarm_' + sd, cbox(0.15, 0.16, 0.16, 0.035), s * 0.19, 0.995, -0.03, C.jacket, { mesh: 'jacket' });
-    part('upperarm_' + sd, frus(0.17, 0.15, 0.16, 0.16, 0.15), s * 0.29, 0.995, -0.03, C.jacket, { mesh: 'jacket', rot: [0, 0, s * Math.PI / 2] });
-    part('lowerarm_' + sd, frus(0.1, 0.095, 0.05, 0.155, 0.15), s * 0.385, 0.995, -0.03, C.jacketD, { mesh: 'jacketD', rot: [0, 0, s * Math.PI / 2] });
-    part('lowerarm_' + sd, frus(0.11, 0.09, 0.14, 0.1, 0.085), s * 0.48, 0.995, -0.03, C.skin, { mesh: 'skin', rot: [0, 0, s * Math.PI / 2] });
-    part('hand_' + sd, frus(0.14, 0.09, 0.15, 0.13, 0.1), s * 0.6, 0.995, -0.03, C.skin, { mesh: 'skin', rot: [0, 0, s * Math.PI / 2] });
-    part('hand_' + sd, cbox(0.04, 0.045, 0.07, 0.01), s * 0.575, 1.035, -0.02, C.skinShade, { mesh: 'skinShade' });
+    part('upperarm_' + sd, cbox(0.15, 0.16, 0.16, 0.035), s * 0.19, 0.995, -0.05, C.jacket, { mesh: 'jacket' });
+    part('upperarm_' + sd, frus(0.17, 0.15, 0.16, 0.16, 0.15, 8), s * 0.29, 0.995, -0.05, C.jacket, { mesh: 'jacket', rot: [0, 0, s * Math.PI / 2] });
+    part('lowerarm_' + sd, frus(0.1, 0.095, 0.05, 0.155, 0.15), s * 0.385, 0.995, -0.05, C.jacketD, { mesh: 'jacketD', rot: [0, 0, s * Math.PI / 2] });
+    part('lowerarm_' + sd, frus(0.11, 0.09, 0.14, 0.1, 0.085, 8), s * 0.48, 0.995, -0.05, C.skin, { mesh: 'skin', rot: [0, 0, s * Math.PI / 2] });
+    part('hand_' + sd, frus(0.17, 0.1, 0.15, 0.14, 0.11, 6), s * 0.6, 0.985, -0.05, C.skin, { mesh: 'skin', rot: [0, 0, s * Math.PI / 2] });
+    part('hand_' + sd, cbox(0.04, 0.045, 0.07, 0.01), s * 0.575, 1.035, -0.04, C.skinShade, { mesh: 'skinShade' });
   }
 
   /* ── maillages skinnés (un par matériau) ── */
   const meshes = [], byName = {};
+  const SMOOTH = new Set(['jacket', 'jacketD', 'lining', 'shirt', 'legs', 'legsL', 'tabi', 'skin']);
   for (const [, b] of buckets) {
-    const geo = mergeGeometries(b.list, false);
-    const sm = new THREE.SkinnedMesh(geo, b.glass ? new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.15, transparent: true, opacity: 0.28, depthWrite: false, flatShading: true }) : new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.85, flatShading: true, emissive: b.color, emissiveIntensity: 0.22 }));
+    let geo = mergeGeometries(b.list, false);
+    const smooth = SMOOTH.has(b.name);
+    if (smooth) { geo.deleteAttribute('normal'); geo.deleteAttribute('uv'); geo = mergeVertices(geo, 1e-4); geo.computeVertexNormals(); }
+    const sm = new THREE.SkinnedMesh(geo, b.glass ? new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.15, transparent: true, opacity: 0.92, depthWrite: true, flatShading: true }) : new THREE.MeshStandardMaterial({ color: b.color, roughness: ['hair', 'hairB', 'beard', 'brow'].includes(b.name) ? 1 : 0.85, envMapIntensity: ['hair', 'hairB', 'beard', 'brow'].includes(b.name) ? 0.2 : 1, flatShading: !smooth, emissive: b.color, emissiveIntensity: ['hair', 'hairB', 'beard', 'brow', 'legs', 'legsL', 'badge'].includes(b.name) ? 0 : 0.07 }));
     sm.name = b.name; sm.castShadow = sm.receiveShadow = !b.glass; sm.frustumCulled = false;
     group.add(sm); meshes.push(sm); byName[b.name] = sm;
   }
@@ -221,7 +240,7 @@ export async function createCharacter({ rigUrl = 'assets/rig.json', animsUrl = '
   tabi.visible = false;
   // plaque d'expression : devant le visage
   const faces = {}; for (const k of ['neutral', 'blink', 'happy', 'amazed', 'talkA', 'talkO', 'sip']) faces[k] = faceTexture(k);
-  const plateGeo = new THREE.PlaneGeometry(0.27, 0.268); plateGeo.translate(0, 1.232, 0.2215);
+  const plateGeo = new THREE.PlaneGeometry(0.27, 0.24); plateGeo.translate(0, 1.2, 0.2215);
   { const n = plateGeo.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4); for (let i = 0; i < n; i++) { si[i * 4] = idx.Head; sw[i * 4] = 1; } plateGeo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); plateGeo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); }
   const plateMat = new THREE.MeshStandardMaterial({ map: faces.neutral, roughness: 0.9 });
   const plate = new THREE.SkinnedMesh(plateGeo, plateMat); plate.name = 'expression_plate'; plate.frustumCulled = false; plate.receiveShadow = true;
