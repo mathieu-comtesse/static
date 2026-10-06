@@ -279,21 +279,106 @@ export function officeChairFrom(gltf) {
 /* ───────────── CANAPÉ DS-450 (de Sede), noir ─────────────
  * Modèle 3D Warehouse « DeSede DS-450 » de Marije H. (≈ 8 k triangles), deux places à dossiers articulés ; le fichier est à une autre échelle,
  * on le ramène à ≈ 2,2 m de large, cuir noir, piètement en métal sombre. Avant du canapé = +z. */
-export function sofaFrom(gltf, width = 2.2) {
+/** Découpe une géométrie en composantes connexes (sommets soudés par position) : [{ geo, min, max }]. */
+function splitComponents(geo) {
+  const p = geo.attributes.position, n = p.count, idx = geo.index;
+  const key = new Map(), rep = new Int32Array(n);
+  for (let i = 0; i < n; i++) { const k = Math.round(p.getX(i) * 1000) + ',' + Math.round(p.getY(i) * 1000) + ',' + Math.round(p.getZ(i) * 1000); if (key.has(k)) rep[i] = key.get(k); else { key.set(k, i); rep[i] = i; } }
+  const par = new Int32Array(n); for (let i = 0; i < n; i++) par[i] = i;
+  const find = (x) => { while (par[x] !== x) { par[x] = par[par[x]]; x = par[x]; } return x; };
+  for (let i = 0; i < idx.count; i += 3) { const a = rep[idx.getX(i)], b = rep[idx.getX(i + 1)], c = rep[idx.getX(i + 2)]; par[find(a)] = find(b); par[find(b)] = find(c); }
+  const tris = new Map();
+  for (let i = 0; i < idx.count; i += 3) { const r = find(rep[idx.getX(i)]); if (!tris.has(r)) tris.set(r, []); tris.get(r).push(idx.getX(i), idx.getX(i + 1), idx.getX(i + 2)); }
+  const out = [];
+  for (const list of tris.values()) {
+    const map = new Map(), pos = [], nor = [], uv = [], ids = [];
+    const N = geo.attributes.normal, UV = geo.attributes.uv;
+    const min = [1e9, 1e9, 1e9], max = [-1e9, -1e9, -1e9];
+    for (const v of list) {
+      if (!map.has(v)) {
+        map.set(v, pos.length / 3);
+        const x = p.getX(v), y = p.getY(v), z = p.getZ(v); pos.push(x, y, z);
+        [x, y, z].forEach((c, k) => { min[k] = Math.min(min[k], c); max[k] = Math.max(max[k], c); });
+        if (N) nor.push(N.getX(v), N.getY(v), N.getZ(v)); if (UV) uv.push(UV.getX(v), UV.getY(v));
+      }
+      ids.push(map.get(v));
+    }
+    const g2 = new THREE.BufferGeometry();
+    g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    if (nor.length) g2.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    if (uv.length) g2.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g2.setIndex(ids);
+    out.push({ geo: g2, min, max, n: pos.length / 3 });
+  }
+  return out;
+}
+
+/* ───────────── CANAPÉ DS-450 (de Sede), noir, déplié en méridienne ─────────────
+ * Modèle 3D Warehouse « DeSede DS-450 » de Marije H. (≈ 8 k triangles). Le fichier est un seul bloc de cuir : on le découpe en pièces
+ * (dossiers, assises) pour reproduire la fonction du DS-450 : dossiers basculés vers l'arrière, assise de gauche tirée vers l'avant en méridienne.
+ * `opts.recline` en radians, `opts.slide` = coulissement de l'assise (unités du fichier). Avant du canapé = +z. */
+export function sofaFrom(gltf, width = 2.2, opts = {}) {
+  const { recline = 0.75, slide = 52, slideSide = 1 } = opts;
   const g = group();
   const root = gltf.scene.clone(true);
   root.updateMatrixWorld(true);
   const bb = new THREE.Box3().setFromObject(root), k = width / (bb.max.x - bb.min.x);
-  root.traverse((o) => {
-    if (!o.isMesh) return;
+  const leather = new THREE.MeshStandardMaterial({ color: '#17181b', roughness: 0.5, side: THREE.DoubleSide });
+  const metalM = new THREE.MeshStandardMaterial({ color: '#2a2b2f', roughness: 0.35, metalness: 0.8, side: THREE.DoubleSide });
+  const targets = [];
+  root.traverse((o) => { if (o.isMesh) targets.push(o); });
+  for (const o of targets) {
     const src = Array.isArray(o.material) ? o.material[0] : o.material;
-    const metal = (src.metalness || 0) > 0.4 || /chrom|metal|steel|alu/i.test(src.name || '');
-    o.material = new THREE.MeshStandardMaterial({ color: metal ? '#2a2b2f' : '#17181b', roughness: metal ? 0.35 : 0.55, metalness: metal ? 0.8 : 0, side: THREE.DoubleSide });
+    const isLeather = /Obsidian|leather|cuir/i.test(src.name || '') || o.geometry.attributes.position.count > 20000;
     o.castShadow = o.receiveShadow = true;
-  });
+    if (!isLeather) {
+      // piètement : les pieds avant du côté de l'assise coulissante suivent l'assise
+      o.material = metalM;
+      o.geometry.applyMatrix4(o.matrix); o.position.set(0, 0, 0); o.quaternion.identity(); o.scale.set(1, 1, 1); o.updateMatrix();
+      const hold = group(); o.parent.add(hold); o.parent.remove(o);
+      for (const c of splitComponents(o.geometry)) {
+        const cx = (c.min[0] + c.max[0]) / 2, cy = (c.min[1] + c.max[1]) / 2;
+        if (slide > 0 && (c.max[0] - c.min[0] > 100 && cy < 0 || cy < -20 && (Math.sign(cx) === slideSide && c.max[1] - c.min[1] < 12))) continue;   // traverse avant et pieds avant : remplacés par un pied sous l'assise tirée
+        const m = new THREE.Mesh(c.geo, metalM); m.castShadow = m.receiveShadow = true;
+        hold.add(m);
+      }
+      if (slide > 0) {
+        for (const sx of [-1, 1]) {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 22, 12).rotateX(Math.PI / 2), metalM);
+          leg.position.set(slideSide * 65 * sx * (sx === 1 ? 1 : 1) * (sx === 1 ? 1 : 1), -39 - slide + 3, 11); leg.position.x = slideSide * 65 * (sx === 1 ? 1 : 0.0) ; leg.castShadow = true;
+          if (sx === 1) hold.add(leg);
+        }
+        const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 22, 12).rotateX(Math.PI / 2), metalM); leg2.position.set(slideSide * 3, -39 - slide + 3, 11); leg2.castShadow = true; hold.add(leg2);
+      }
+      continue;
+    }
+    o.material = leather;
+    o.geometry.applyMatrix4(o.matrix); o.position.set(0, 0, 0); o.quaternion.identity(); o.scale.set(1, 1, 1); o.updateMatrix();
+    const parts = splitComponents(o.geometry);
+    const holder = group();
+    o.parent.add(holder); o.parent.remove(o);
+    for (const c of parts) {
+      const cx = (c.min[0] + c.max[0]) / 2;
+      if (slide > 0 && c.max[0] - c.min[0] > 100 && c.max[1] - c.min[1] < 6) continue;      // barre de liaison avant : retirée quand l'assise est tirée
+      const isBack = c.max[2] > 60 || (c.min[1] > 20 && c.min[2] > 30);           // dossiers et leurs articulations
+      const isSeat = !isBack && c.max[0] - c.min[0] > 60 && c.max[2] < 50;       // assises (et accoudoirs)
+      const side = Math.sign(cx) || 1;
+      const pivot = group();
+      let px = 0, py = 0, pz = 0;
+      if (isBack) { const sorted = [...Array(c.n).keys()]; py = c.min[1] + 1; pz = c.min[2] + 1; px = cx; }
+      c.geo.translate(-px, -py, -pz);
+      const m = new THREE.Mesh(c.geo, leather); m.castShadow = m.receiveShadow = true;
+      pivot.add(m); pivot.position.set(px, py, pz);
+      if (isBack) pivot.rotation.x = -recline;
+      if (isSeat && side === slideSide) pivot.position.y -= slide;
+      holder.add(pivot);
+    }
+  }
   const inner = group(root);
   inner.scale.setScalar(k);
-  inner.position.set(-(bb.max.x + bb.min.x) / 2 * k, -bb.min.y * k, -(bb.max.z + bb.min.z) / 2 * k);
+  root.updateMatrixWorld(true);
+  const bb2 = new THREE.Box3().setFromObject(root);
+  inner.position.set(-(bb2.max.x + bb2.min.x) / 2 * k, -bb2.min.y * k, -(bb2.max.z + bb2.min.z) / 2 * k);
   g.add(inner);
   return g;
 }
