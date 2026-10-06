@@ -103,6 +103,7 @@ export function moonlander() {
     half.position.y = 0.045;
     const plate = rbox(0.15, 0.006, 0.26, 0.003, silver, 0, 0.003, 0.01);
     const arm = bone([0, 0.006, 0.0], [s * -0.045 * -1, 0.05, 0.0], 0.006, 0.006, silver);
+    const knob = cyl(0.011, 0.011, 0.012, mat('#f26a1b'), s * -0.045 * -1, 0.052, 0.0, 14); knob.rotation.z = Math.PI / 2; arm.add(knob);
     const h = group(plate, half, arm);
     h.position.x = s * 0.1;
     g.add(h); halves.push(h);
@@ -112,14 +113,16 @@ export function moonlander() {
 }
 
 export function verticalMouse() {
+  /* Evoluent VerticalMouse : corps noir dressé, repose-pouce argenté, bouton cuivré. */
   const g = group();
-  const black = mat('#1a1b1d', { roughness: 0.45 }), chrome = mat('#cfd2d6', { metalness: 0.8, roughness: 0.3 });
+  const black = mat('#1a1b1d', { roughness: 0.45 }), chrome = mat('#cfd2d6', { metalness: 0.8, roughness: 0.3 }), copper = mat('#a8613a', { metalness: 0.6, roughness: 0.4 });
   const body = group(
-    rbox(0.046, 0.1, 0.115, 0.02, black, 0, 0.05, 0),
-    rbox(0.012, 0.07, 0.07, 0.006, chrome, 0.026, 0.055, -0.005),
-    rbox(0.05, 0.016, 0.115, 0.007, black, 0, 0.01, 0),
+    rbox(0.044, 0.1, 0.12, 0.02, black, 0, 0.05, 0),
+    rbox(0.012, 0.075, 0.075, 0.006, chrome, 0.027, 0.056, -0.005),
+    rbox(0.046, 0.02, 0.12, 0.008, copper, 0, 0.012, 0),
+    rbox(0.01, 0.012, 0.03, 0.004, chrome, 0.0, 0.098, -0.04),
   );
-  body.rotation.z = -0.28;
+  body.rotation.z = -0.3;
   g.add(body);
   return g;
 }
@@ -133,17 +136,17 @@ export function brontes() {
   const glow = new THREE.MeshBasicMaterial({ color: '#fff0d0', toneMapped: false });
   const shade = group();
   const dome = new THREE.SphereGeometry(1, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2);
-  const d = mesh(dome, alu); d.scale.set(0.15, 0.06, 0.1); shade.add(d);
+  const d = mesh(dome, alu); d.scale.set(0.19, 0.07, 0.12); shade.add(d);
   for (let i = 1; i <= 5; i++) {
     const r = Math.cos(i * 0.26);
     const ring = mesh(new THREE.TorusGeometry(1, 0.035, 6, 36), alu);
-    ring.rotation.x = Math.PI / 2; ring.scale.set(0.15 * r, 0.1 * r, 0.06 * Math.sin(i * 0.26) + 0.002);
-    ring.position.y = 0.06 * Math.sin(i * 0.26);
+    ring.rotation.x = Math.PI / 2; ring.scale.set(0.19 * r, 0.12 * r, 0.06 * Math.sin(i * 0.26) + 0.002);
+    ring.position.y = 0.07 * Math.sin(i * 0.26);
     ring.scale.z = 0.02; shade.add(ring);
   }
-  const rim = mesh(new THREE.TorusGeometry(1, 0.03, 8, 40), rubber); rim.rotation.x = Math.PI / 2; rim.scale.set(0.15, 0.1, 0.7); shade.add(rim);
-  const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.135, 28), glow);
-  lamp.rotation.x = Math.PI / 2; lamp.scale.set(1, 0.68, 1); lamp.position.y = -0.002; lamp.rotation.x = Math.PI / 2; shade.add(lamp);
+  const rim = mesh(new THREE.TorusGeometry(1, 0.03, 8, 40), rubber); rim.rotation.x = Math.PI / 2; rim.scale.set(0.19, 0.12, 0.8); shade.add(rim);
+  const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.17, 28), glow);
+  lamp.rotation.x = Math.PI / 2; lamp.scale.set(1, 0.66, 1); lamp.position.y = -0.002; lamp.rotation.x = Math.PI / 2; shade.add(lamp);
   shade.position.set(0, 0.31, 0.02);
   shade.rotation.set(0.0, 0.0, 0.34);
   g.add(shade);
@@ -186,40 +189,42 @@ function bowl(R, H, color, gravel = '#e5e0d3') {
 }
 
 export function bonsai() {
+  /* Bonsaï à tronc renflé gris, branches brunes noueuses, petites feuilles pennées clairsemées, vasque de béton brut. */
   const r = rng(11);
   const g = group();
   g.add(bowl(0.17, 0.12, '#9b9a92', '#bfb398'));
-  const bark = mat('#857674', { roughness: 0.9 });
+  const trunk = mat('#8d898b', { roughness: 0.9 }), twig = mat('#6e5a50', { roughness: 0.9 });
   const tips = [];
   const grow = (p, dir, len, rad, depth) => {
     const q = [p[0] + dir.x * len, p[1] + dir.y * len, p[2] + dir.z * len];
-    g.add(bone(p, q, rad, rad * 0.8, bark, 7));
-    g.add(sph(rad * 0.86, bark, q[0], q[1], q[2], 9, 7));
+    const m = depth >= 2 ? trunk : twig;
+    g.add(bone(p, q, rad, rad * 0.78, m, 7));
+    g.add(sph(rad * 0.95, m, q[0], q[1], q[2], 9, 7));
     if (depth === 0) { tips.push(q); return; }
     const kids = depth >= 3 ? 3 : 2;
     for (let i = 0; i < kids; i++) {
-      const a = (i / kids) * Math.PI * 2 + r() * 1.2;
-      const d = dir.clone().multiplyScalar(0.5).add(new THREE.Vector3(Math.cos(a) * 0.9, 0.2 + r() * 0.5, Math.sin(a) * 0.9)).normalize();
-      grow(q, d, len * (0.78 + r() * 0.15), rad * 0.68, depth - 1);
+      const a = (i / kids) * Math.PI * 2 + r() * 1.3;
+      const d = dir.clone().multiplyScalar(0.35).add(new THREE.Vector3(Math.cos(a) * 1.0, 0.12 + r() * 0.5, Math.sin(a) * 1.0)).normalize();
+      grow(q, d, len * (0.8 + r() * 0.2), rad * 0.66, depth - 1);
     }
     if (depth <= 2) tips.push(q);
   };
-  // tronc noueux
-  g.add(bone([0, 0.1, 0], [0.005, 0.17, 0], 0.036, 0.03, bark, 9));
-  for (const [y, rr] of [[0.135, 0.036], [0.17, 0.033]]) g.add(sph(rr, bark, 0.0, y, 0.0, 10, 8));
-  grow([0.005, 0.17, 0], new THREE.Vector3(0.05, 1, 0).normalize(), 0.075, 0.03, 4);
-  const leafGeo = new THREE.SphereGeometry(1, 6, 4);
-  const per = 5, count = tips.length * per;
+  // tronc renflé, noueux
+  for (const [y, rr] of [[0.125, 0.04], [0.15, 0.046], [0.18, 0.04]]) g.add(sph(rr, trunk, (y - 0.12) * 0.1, y, 0, 12, 9));
+  g.add(bone([0, 0.1, 0], [0.005, 0.2, 0], 0.044, 0.036, trunk, 10));
+  grow([0.005, 0.2, 0], new THREE.Vector3(0.05, 1, 0).normalize(), 0.085, 0.034, 4);
+  const leafGeo = new THREE.SphereGeometry(1, 5, 3);
+  const per = 6, count = tips.length * per;
   const leaves = new THREE.InstancedMesh(leafGeo, mat('#ffffff', { roughness: 0.8 }), count);
   leaves.castShadow = true;
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3();
-  const greens = ['#86b36e', '#6f9f5c', '#9bc27f', '#5f8f52'];
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+  const greens = ['#93c476', '#7fb164', '#a6cf86', '#6fa257'];
   let n = 0;
   for (const t of tips) for (let i = 0; i < per; i++) {
-    v.set(t[0] + (r() - 0.5) * 0.07, t[1] + (r() - 0.2) * 0.04, t[2] + (r() - 0.5) * 0.07);
-    e.set(r() * 3, r() * 6, r() * 3); q.setFromEuler(e);
-    s.set(0.024 + r() * 0.008, 0.005, 0.009 + r() * 0.004);
-    m4.compose(v, q, s); leaves.setMatrixAt(n, m4);
+    v.set(t[0] + (r() - 0.5) * 0.08, t[1] + (r() - 0.25) * 0.045, t[2] + (r() - 0.5) * 0.08);
+    e.set((r() - 0.5) * 1.2, r() * 6.3, (r() - 0.5) * 1.2); q.setFromEuler(e);
+    sc.set(0.03 + r() * 0.01, 0.0045, 0.0085 + r() * 0.003);
+    m4.compose(v, q, sc); leaves.setMatrixAt(n, m4);
     leaves.setColorAt(n, new THREE.Color(greens[(r() * 4) | 0])); n++;
   }
   g.add(leaves);
@@ -227,45 +232,52 @@ export function bonsai() {
 }
 
 export function dracaena() {
+  /* Dragonnier multi-troncs : vasque de béton large et basse, gravier blanc, pierre, tiges nues sinueuses couronnées de rosettes. */
   const r = rng(5);
   const g = group();
-  g.add(bowl(0.36, 0.2, '#b3a893', '#ebe7dc'));
-  g.add(mesh(new THREE.DodecahedronGeometry(0.07, 0), mat('#9d9a92', { roughness: 1 }), 0.12, 0.2, 0.1));
-  const stemM = mat('#a98a63', { roughness: 0.9 }), leafM = [mat('#4e8d3b'), mat('#3f7a30'), mat('#5b9a44')];
-  const blade = new THREE.ConeGeometry(0.011, 0.3, 4); blade.translate(0, 0.15, 0);
+  g.add(bowl(0.42, 0.17, '#b3a893', '#ece8de'));
+  g.add(mesh(new THREE.DodecahedronGeometry(0.07, 0), mat('#9d9a92', { roughness: 1 }), 0.16, 0.17, 0.12));
+  const stemM = mat('#a58a66', { roughness: 0.9 }), leafM = [mat('#4f9a3a'), mat('#3f8a30'), mat('#62a845')];
+  const blade = new THREE.ConeGeometry(0.0085, 0.32, 4); blade.translate(0, 0.16, 0);
+  const rosette = (p, nb, scale) => {
+    const ros = group();
+    for (let b = 0; b < nb; b++) {
+      const bl = mesh(blade, leafM[b % 3]);
+      bl.scale.set(1, (0.7 + r() * 0.5) * scale, 1);
+      const wrap = group(bl); wrap.rotation.set(0, (b / nb) * Math.PI * 2 + r() * 0.3, 0);
+      const tilt = group(wrap); tilt.rotation.z = 0.25 + r() * 1.15;
+      const yaw = group(tilt); yaw.rotation.y = (b / nb) * Math.PI * 2 + r() * 0.4;
+      wrap.rotation.set(0, 0, 0);
+      ros.add(yaw);
+    }
+    ros.position.copy(p); g.add(ros);
+  };
+  // racines noueuses à la base
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + r() * 0.4, len = 0.12 + r() * 0.1;
+    g.add(bone([Math.cos(a) * 0.03, 0.2, Math.sin(a) * 0.03], [Math.cos(a) * len, 0.17, Math.sin(a) * len], 0.032, 0.02, stemM, 7));
+  }
   const N = 11;
   for (let i = 0; i < N; i++) {
     const a = (i / N) * Math.PI * 2 + r() * 0.5;
-    const top = 0.85 + r() * 1.05;
-    const drift = 0.18 + r() * 0.42;
+    const top = 0.9 + r() * 1.15;
+    const drift = 0.2 + r() * 0.45;
     const pts = [];
-    for (let k = 0; k <= 7; k++) {
-      const t = k / 7;
+    for (let k = 0; k <= 8; k++) {
+      const t = k / 8;
       pts.push(new THREE.Vector3(
-        Math.cos(a) * drift * t * t + Math.sin(t * 6 + i) * 0.05 * t,
-        0.16 + t * top,
-        Math.sin(a) * drift * t * t + Math.cos(t * 5 + i * 2) * 0.05 * t));
+        Math.cos(a) * drift * t * t + Math.sin(t * 5.2 + i * 1.7) * 0.07 * t,
+        0.2 + t * top,
+        Math.sin(a) * drift * t * t + Math.cos(t * 4.6 + i * 2.3) * 0.07 * t));
     }
     const curve = new THREE.CatmullRomCurve3(pts);
-    const P = curve.getPoints(18);
+    const P = curve.getPoints(22);
     for (let k = 0; k < P.length - 1; k++) {
-      const rad = 0.026 - 0.016 * (k / P.length);
-      g.add(bone([P[k].x, P[k].y, P[k].z], [P[k + 1].x, P[k + 1].y, P[k + 1].z], rad, rad * 0.97, stemM, 6));
+      const rad = 0.021 - 0.011 * (k / P.length);
+      g.add(bone([P[k].x, P[k].y, P[k].z], [P[k + 1].x, P[k + 1].y, P[k + 1].z], rad, rad * 0.96, stemM, 6));
     }
-    const tip = P[P.length - 1];
-    const ros = group();
-    const nb = 13;
-    for (let b = 0; b < nb; b++) {
-      const bl = mesh(blade, leafM[b % 3]);
-      const ang = (b / nb) * Math.PI * 2 + r() * 0.3;
-      bl.rotation.set(0, ang, 0);
-      const wrap = group(bl); wrap.rotation.z = 0.35 + r() * 1.1; wrap.rotation.y = ang;
-      bl.rotation.set(0, 0, 0);
-      bl.scale.set(1, 0.65 + r() * 0.6, 1);
-      ros.add(wrap);
-    }
-    ros.position.copy(tip);
-    g.add(ros);
+    rosette(P[P.length - 1], 13, 1);
+    if (r() > 0.45) rosette(P[Math.floor(P.length * (0.55 + r() * 0.2))], 9, 0.75);     // rosette latérale
   }
   return bake(g);
 }
@@ -286,25 +298,28 @@ export function rug(tex, w = 1.6, l = 2.25) {
 
 /* ───────────── FAUTEUIL EKSTREM ───────────── */
 export function ekstrem() {
+  /* Ekstrem (Terje Ekstrøm) : un seul diamètre de tube capitonné, quatre pieds à embouts gris.
+   *  - arche avant en « ∩ » qui porte les deux pieds de devant,
+   *  - deux montants arrière verticaux dont le sommet se recourbe vers le centre (les deux bosses du « M »),
+   *  - ces deux tubes redescendent en S, se croisent au centre et forment l'assise,
+   *  - un accoudoir de chaque côté, du montant arrière jusqu'à l'arche. */
   const g = group();
-  const fabric = mat('#202127', { roughness: 1 });
-  const R = 0.062;
-  const T = (pts, r = R) => g.add(tube(pts, r, fabric, { segs: 90, radial: 16 }));
+  const fabric = mat('#2a2d36', { roughness: 1 });
+  const R = 0.078, W = 0.37;
+  const T = (pts, r = R) => g.add(tube(pts, r, fabric, { segs: 120, radial: 18 }));
+  // arche avant
+  T([[-W, 0.05, 0.37], [-W, 0.3, 0.37], [-W + 0.035, 0.425, 0.37], [-0.17, 0.46, 0.37], [0.17, 0.46, 0.37], [W - 0.035, 0.425, 0.37], [W, 0.3, 0.37], [W, 0.05, 0.37]]);
   for (const s of [-1, 1]) {
-    const x = s * 0.38;
-    // pied avant -> accoudoir -> retour vers le montant arrière
-    T([[x, R, 0.38], [x, 0.4, 0.4], [x, 0.52, 0.3], [x, 0.54, -0.05], [x, 0.56, -0.31]]);
-    // montant arrière, du sol jusqu'au sommet du dossier
-    T([[x, R, -0.34], [x, 0.5, -0.35], [x, 0.86, -0.34]]);
-    g.add(cyl(0.056, 0.064, 0.03, mat('#3a3b3f', { roughness: 0.6 }), x, 0.015, 0.38, 20));
-    g.add(cyl(0.056, 0.064, 0.03, mat('#3a3b3f', { roughness: 0.6 }), x, 0.015, -0.34, 20));
+    const x = s * W;
+    // montant arrière, bosse, descente en S vers le centre puis assise jusqu'à l'arche avant (côté opposé)
+    T([[x, 0.05, -0.3], [x, 0.4, -0.3], [x, 0.7, -0.3], [x - s * 0.04, 0.83, -0.29], [x - s * 0.13, 0.82, -0.26], [x - s * 0.24, 0.7, -0.2],
+       [-s * 0.01, 0.56, -0.12], [-s * 0.14, 0.45, 0.04], [-s * 0.25, 0.4, 0.21], [-s * 0.32, 0.43, 0.33], [-s * 0.34, 0.45, 0.37]]);
+    // accoudoir
+    T([[x, 0.58, -0.3], [x, 0.56, -0.05], [x, 0.5, 0.2], [x, 0.44, 0.37]], R * 0.96);
+    // pieds : embouts gris
+    g.add(cyl(R * 0.9, R * 0.98, 0.035, mat('#4a4c52', { roughness: 0.55 }), x, 0.0175, 0.37, 22));
+    g.add(cyl(R * 0.9, R * 0.98, 0.035, mat('#4a4c52', { roughness: 0.55 }), x, 0.0175, -0.3, 22));
   }
-  // barre haute du dossier : creux en son centre (le « M » du Ekstrem)
-  T([[-0.38, 0.86, -0.34], [-0.2, 0.74, -0.34], [0, 0.8, -0.33], [0.2, 0.74, -0.34], [0.38, 0.86, -0.34]]);
-  // coussin de dossier
-  T([[-0.38, 0.6, -0.33], [-0.15, 0.56, -0.22], [0.15, 0.56, -0.22], [0.38, 0.6, -0.33]]);
-  // assise en S
-  T([[-0.38, 0.5, 0.15], [-0.22, 0.4, 0.25], [0, 0.36, 0.1], [0.22, 0.4, -0.05], [0.38, 0.5, -0.12]]);
   return bake(g);
 }
 
