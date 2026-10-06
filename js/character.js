@@ -291,6 +291,7 @@ export async function createCharacter({
   let ov = null, ovW = 0, post = null, lean = 0, leanW = 0;
 
   const _pq = new THREE.Quaternion(), _qg = new THREE.Quaternion(), _R = new THREE.Quaternion(), _M = new THREE.Quaternion(), _v = new THREE.Vector3();
+  const _fw = new THREE.Vector3(), _tg = new THREE.Vector3(), _th = new THREE.Vector3(), _ax = new THREE.Vector3(), _UP = new THREE.Vector3(0, 1, 0), view = { right: new THREE.Vector3(1, 0, 0), toCam: new THREE.Vector3(0, 0, 1) };
   const _Z = new THREE.Vector3(0, 0, 1), _X = new THREE.Vector3(1, 0, 0), _AIM = new THREE.Vector3(1, 0, 0), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
   const applyWorldRot = (bone, qWorld) => {
     bone.parent.getWorldQuaternion(_pq);
@@ -359,6 +360,7 @@ export async function createCharacter({
     setHoverExpression(on) { portrait.hover = !!on; },
     setAmazed(on) { portrait.amazed = !!on; },
     setLean(v) { lean = v; },
+    setLookView(right, toCam) { view.right.copy(right); view.toCam.copy(toCam); },       // repère de l'écran : droite de l'écran et direction vers la caméra (horizontales, unitaires)
     setHeadOnly(on = true) { model.traverse((o) => { if ((o.isMesh || o.isSkinnedMesh) && /^(jacket|arm|shirt|legs|shoes|id|clip|nb_)/.test(o.name)) o.visible = !on; else if (o.isMesh && !o.name && o.parent && (o.parent === bones.foot_l || o.parent === bones.foot_r)) o.visible = !on; }); nbShoes.forEach((s) => { s.visible = !on; }); },
     setHeadScale() {},
     update(dt, t) {
@@ -386,16 +388,17 @@ export async function createCharacter({
         const kLook = 1 - Math.exp(-dt * portrait.damping);
         portrait.x += (portrait.targetX - portrait.x) * kLook;
         portrait.y += (portrait.targetY - portrait.y) * kLook;
-        const yaw = -portrait.x * portrait.yaw;
-        const pitchLimit = portrait.y < 0 ? portrait.pitchUp : portrait.pitchDown;
-        const pitch = -portrait.y * pitchLimit;
-        // Distribute the motion between neck and head, after the current animation/IK pose.
-        if (bones.neck_01) {
-          rotChar(bones.neck_01, pitch * 0.30, new THREE.Vector3(1, 0, 0));
-          rotChar(bones.neck_01, yaw * 0.25, new THREE.Vector3(0, 1, 0));
-        }
-        rotChar(bones.Head, pitch * 0.70, new THREE.Vector3(1, 0, 0));
-        rotChar(bones.Head, yaw * 0.75, new THREE.Vector3(0, 1, 0));
+        // direction visée dans le MONDE : vers la caméra, déviée vers la droite/haut de l'écran selon le pointeur ; on en tire lacet et tangage par rapport à l'avant du personnage
+        group.getWorldQuaternion(_qg);
+        const f = _fw.set(0, 0, 1).applyQuaternion(_qg); f.y = 0; f.normalize();
+        const t = _tg.copy(view.toCam).multiplyScalar(1).addScaledVector(view.right, portrait.x * Math.tan(portrait.yaw)).addScaledVector(_UP, -portrait.y * Math.tan(portrait.y < 0 ? portrait.pitchUp : portrait.pitchDown));
+        const th = _th.set(t.x, 0, t.z).normalize();
+        const cross = f.x * th.z - f.z * th.x;                               // composante Y de f × th : > 0 = th est du côté +x de f
+        let yaw = Math.atan2(-cross, f.dot(th)); yaw = THREE.MathUtils.clamp(yaw, -portrait.yaw, portrait.yaw);
+        const pitch = Math.atan2(t.y, Math.hypot(t.x, t.z));
+        _ax.crossVectors(f, _UP).normalize();
+        if (bones.neck_01) { rotChar(bones.neck_01, pitch * 0.30, _ax); rotChar(bones.neck_01, yaw * 0.25, _UP); }
+        rotChar(bones.Head, pitch * 0.70, _ax); rotChar(bones.Head, yaw * 0.75, _UP);
       }
       if (can.visible && bones.hand_r) {
         bones.hand_r.getWorldPosition(_v); can.position.copy(group.worldToLocal(_v));

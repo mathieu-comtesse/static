@@ -651,7 +651,7 @@ export async function createRoom(container, bubbleEl) {
   const clock = new THREE.Clock();
   let running = true;
   const startAt = performance.now();
-  const v3 = new THREE.Vector3();
+  const v3 = new THREE.Vector3(), lookRight = new THREE.Vector3(), lookTo = new THREE.Vector3();
   function frame() {
     if (!running) return;
     const dt = Math.min(clock.getDelta(), opts.dtCap);
@@ -684,6 +684,7 @@ export async function createRoom(container, bubbleEl) {
       if (director.mode === 'activity' && !appOpen && !crate.isOpen && director.current && performance.now() - actSince > (director.current.maxMs || 25000)) { director.stand(); actSince = performance.now(); }
       autonomousTick();
       director.update(dt);
+      { const e = camera.matrixWorld.elements; lookRight.set(e[0], 0, e[2]).normalize(); lookTo.set(camera.position.x - target.x, 0, camera.position.z - target.z).normalize(); hero.setLookView(lookRight, lookTo); }
       hero.update(dt, t);
       // pieds au sol quand il est debout ou marche (le rig importé a sa propre hauteur de bassin)
       hero.setLean(director.current && director.mode === 'activity' && (director.current.clip === 'Driving_Loop' || director.current.clip === 'Sitting_Idle_Loop' || director.current.ritual) ? 0 : 0.18);
