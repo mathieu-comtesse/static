@@ -35,7 +35,7 @@ function floorTexture() {
 function shojiPanel(W = 0.9, H = 1.75) {
   const g = group();
   const wood = mat('#8a6644', { roughness: 0.7 }), dark = mat('#3a2a1e', { roughness: 0.7 });
-  const paper = new THREE.MeshStandardMaterial({ color: '#f7f2e3', emissive: '#e8dcb8', emissiveIntensity: 0.4, roughness: 1, transparent: true, opacity: 0.93, side: THREE.DoubleSide });
+  const paper = new THREE.MeshStandardMaterial({ color: '#f7f2e3', emissive: '#e8dcb8', emissiveIntensity: 0.4, roughness: 1, side: THREE.DoubleSide });
   const T = 0.032, S = 0.022;
   for (const sx of [-1, 1]) g.add(box(T, H, 0.035, wood, sx * (W / 2 - T / 2), H / 2, 0));
   g.add(box(W, 0.04, 0.035, wood, 0, H - 0.02, 0));
@@ -110,31 +110,29 @@ export function createChashitsu() {
   g.add(box(RW + 0.16, 0.09, 0.09, beam, 0, RH + PH, -RD / 2 - 0.03));
   for (const x of [-1, 1]) g.add(box(0.09, 0.09, RD + 0.16, beam, x * (RW / 2 + 0.03), RH + PH, 0));
 
-  /* paroi du fond : shoji fermés */
-  for (let i = 0; i < 3; i++) { const p = shojiPanel(); p.position.set(-RW / 2 + 0.45 + i * 0.9, RH, -RD / 2 + 0.02); g.add(p); }
-  g.add(box(RW, 0.045, 0.1, beam, 0, RH + 0.022, -RD / 2 + 0.02));                              // seuil
-
   /* paroi côté mer : 3 shoji sur 3 rails */
   const rail = box(RW, 0.04, 0.14, beam, 0, RH + 0.02, RD / 2 - 0.02); g.add(rail);
   const panels = [];
-  const holder = group(); holder.userData.id = 'shoji'; g.add(holder);
   for (let i = 0; i < 3; i++) {
     const p = shojiPanel(); p.position.set(-RW / 2 + 0.45 + i * 0.9, RH + 0.04, RD / 2 - 0.05 + (i - 1) * 0.034);
-    holder.add(p); panels.push({ p, closedX: p.position.x, openX: -RW / 2 + 0.45 + 0.02 * i });
+    p.userData.id = 'shoji' + i;
+    g.add(p); panels.push({ p, closedX: p.position.x, openX: i === 0 ? RW / 2 - 0.45 - 0.02 : -RW / 2 + 0.45 + 0.02 * i, open: 0, target: 0 });
   }
-  const sh = { open: 0, target: 0 };
+
+  /* tout ce qui est derrière les shoji (balcon, mer) n'apparaît que quand ils s'ouvrent */
+  const vista = group(); g.add(vista);
 
   /* engawa : plancher en lames */
-  const DK = { z0: RD / 2 + 0.05, depth: 1.3, y: RH - 0.015 };
+  const DK = { z0: RD / 2 + 0.05, depth: 1.1, y: RH - 0.015 };
   const planks = group();
   const plankM = [mat('#8a6a48', { roughness: 0.8 }), mat('#7a5c3e', { roughness: 0.8 }), mat('#957552', { roughness: 0.8 })];
   const nP = Math.round(DK.depth / 0.145);
   for (let i = 0; i < nP; i++) planks.add(box(RW + 0.7, 0.045, 0.135, plankM[i % 3], 0, 0, DK.z0 + 0.075 + i * 0.145));
   planks.position.y = DK.y - 0.022;
   for (const x of [-RW / 2 - 0.2, 0, RW / 2 + 0.2]) planks.add(box(0.07, 0.06, DK.depth + 0.04, beam, x, -0.05, DK.z0 + DK.depth / 2));
-  g.add(bake(planks));
+  vista.add(bake(planks));
   // pieds du balcon
-  for (const x of [-RW / 2 - 0.25, RW / 2 + 0.25]) g.add(box(0.09, 0.4, 0.09, post, x, DK.y - 0.2, DK.z0 + DK.depth - 0.07));
+  for (const x of [-RW / 2 - 0.25, RW / 2 + 0.25]) vista.add(box(0.09, 0.4, 0.09, post, x, DK.y - 0.2, DK.z0 + DK.depth - 0.07));
 
   /* mobilier du balcon : table basse, coussin rond, lanterne andon */
   const table = group();
@@ -145,8 +143,8 @@ export function createChashitsu() {
   const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.026, 0.1, 14, 1, true), new THREE.MeshStandardMaterial({ color: '#d8ecf2', roughness: 0.1, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
   glass.position.set(0.12, 0.37, 0.02); table.add(glass);
   const mel = sph(0.07, mat('#3f8a4a', { roughness: 0.6 }), -0.14, 0.355, 0, 14, 10); mel.scale.y = 0.62; table.add(mel);
-  table.position.set(-0.8, DK.y + 0.0, DK.z0 + 0.65); table.rotation.y = 0.05; g.add(bake(table));
-  const cushion = rbox(0.4, 0.07, 0.4, 0.03, mat('#b49a74', { roughness: 1 }), 0.15, DK.y + 0.035, DK.z0 + 0.75); g.add(cushion);
+  table.position.set(-0.8, DK.y + 0.0, DK.z0 + 0.65); table.rotation.y = 0.05; vista.add(bake(table));
+  const cushion = rbox(0.4, 0.07, 0.4, 0.03, mat('#b49a74', { roughness: 1 }), 0.15, DK.y + 0.035, DK.z0 + 0.75); vista.add(cushion);
   const lantern = group();
   const paperL = new THREE.MeshBasicMaterial({ color: '#cfc8b4', toneMapped: false });
   lantern.add(box(0.2, 0.3, 0.2, paperL, 0, 0.2, 0));
@@ -154,22 +152,28 @@ export function createChashitsu() {
   for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) lantern.add(box(0.014, 0.34, 0.014, lf, x * 0.1, 0.2, z * 0.1));
   for (const y of [0.03, 0.37]) lantern.add(box(0.22, 0.02, 0.22, lf, 0, y, 0));
   lantern.position.set(RW / 2 - 0.15, DK.y, DK.z0 + 1.05); lantern.userData.id = 'andon';
-  g.add(lantern);
+  vista.add(lantern);
 
   /* mer et rochers */
-  const SEA = { w: 3.8, d: 2.3, z0: DK.z0 + DK.depth + 0.35, y: -0.3 };
-  const sea = makeSea(SEA.w, SEA.d); sea.position.set(0, SEA.y, SEA.z0 + SEA.d / 2); g.add(sea);
+  const SEA = { w: 3.6, d: 1.9, z0: DK.z0 + DK.depth + 0.3, y: -0.3 };
+  const sea = makeSea(SEA.w, SEA.d); sea.position.set(0, SEA.y, SEA.z0 + SEA.d / 2); vista.add(sea);
   const rocks = [[-1.3, 0.25, 0.3, 3], [-0.5, 0.15, 0.22, 4], [0.7, 0.3, 0.26, 5], [1.4, 0.55, 0.34, 6], [-1.5, 1.0, 0.24, 8]];
-  for (const [x, dz, s, seed] of rocks) { const rk = rock(seed, s); rk.position.set(x, SEA.y + s * 0.2, SEA.z0 + dz); rk.rotation.y = seed; g.add(rk); }
+  for (const [x, dz, s, seed] of rocks) { const rk = rock(seed, s); rk.position.set(x, SEA.y + s * 0.2, SEA.z0 + dz); rk.rotation.y = seed; vista.add(rk); }
 
   return {
-    group: g, lantern, lanternGlow: paperL, shoji: { holder, panels, state: sh },
-    toggleShoji() { sh.target = sh.target ? 0 : 1; },
-    setShoji(v) { sh.target = v; },
+    group: g, lantern, lanternGlow: paperL, panels, vista,
+    togglePanel(i) { const q = panels[i]; if (q) q.target = q.target ? 0 : 1; },
+    setPanels(v) { panels.forEach((q) => { q.target = v; }); },
     update(dt, t, night) {
-      sh.open += (sh.target - sh.open) * (1 - Math.exp(-dt * 3.2));
-      const k = sh.open * sh.open * (3 - 2 * sh.open);
-      for (const q of panels) q.p.position.x = q.closedX + (q.openX - q.closedX) * k;
+      let reveal = 0;
+      for (const q of panels) {
+        q.open += (q.target - q.open) * (1 - Math.exp(-dt * 3.2));
+        const k = q.open * q.open * (3 - 2 * q.open);
+        q.p.position.x = q.closedX + (q.openX - q.closedX) * k;
+        reveal = Math.max(reveal, q.open);
+      }
+      const r = Math.min(1, reveal * 1.6), e = r * r * (3 - 2 * r);
+      vista.visible = e > 0.01; vista.scale.set(1, Math.max(e, 0.001), 1);
       sea.userData.uni.uTime.value = t; sea.userData.uni.uNight.value += ((night ? 1 : 0) - sea.userData.uni.uNight.value) * Math.min(1, dt * 2);
     },
     spec: { RW, RD, RH, DK, SEA },

@@ -93,14 +93,14 @@ export async function createRoom(container, bubbleEl) {
   const bonsai = F.bonsai(); inkify(bonsai, { skip: (o) => !['9b9a92'].includes(o.material.color.getHexString()) }); add('bonsai', bonsai, STOOL_X, STOOL_Z, 0.5, 0.372, 0.42);
   const sp1 = F.speakerFromGltf(jblGltf, 1.15), sp2 = F.speakerFromGltf(jblGltf, 1.15);
   const alo = F.alocasia(); inkify(alo, { skip: (o) => !(o.material.map && o.material.map.image && o.material.map.image.width === 128 && o.material.side === THREE.DoubleSide) });
-  add('alocasia', alo, -2.7, 4.3, 0.6, 0, 0.9).scale.setScalar(0.9);
+  add('alocasia', alo, 3.4, 3.4, 0.6, 0, 0.9).scale.setScalar(0.9);
   add('sofa', F.sofaFrom(sofaGltf, 2.2, { recline: 0, slide: 0, lateral: 0 }), 0.35, 4.55, Math.PI, 0, 0.95);
   add('speaker1', sp1, -2.6, -2.5, 0.35, 0, 0.5);
 
   const EKS = 1.3;                           // l'Ekstrem est un grand fauteuil
   const ek = F.ekstremFrom(ekGltf); add('ekstrem', ek, 2.3, -0.95, -0.45, 0, 0.35).scale.setScalar(EKS);
   // pièce du thé excentrée (plate-forme de tatamis, shoji coulissants, balcon en bois, mer) ; origine du thé = zabuton de l'invité
-  const CS = { x: 4.65, z: 3.15 };
+  const CS = { x: -3.7, z: 5.9 };
   const cs = createChashitsu();
   add('chashitsu', cs.group, CS.x, CS.z, 0, 0, 0.5, world, 0);
   const TEA = { x: CS.x, z: CS.z - 0.45, y: cs.spec.RH - 0.055 };
@@ -207,7 +207,8 @@ export async function createRoom(container, bubbleEl) {
     ray.setFromCamera(ndc, camera);
     const hits = ray.intersectObject(world, true);
     for (const h of hits) {
-      if (!h.object.visible) continue;
+      let vis = true; for (let q = h.object; q; q = q.parent) if (!q.visible) { vis = false; break; }
+      if (!vis) continue;
       let o = h.object;
       while (o && o !== world) { if (o.userData.id) return o.userData.id; o = o.parent; }
     }
@@ -270,7 +271,7 @@ export async function createRoom(container, bubbleEl) {
     desk:     { label: 'Au bureau',        clip: 'Driving_Loop',        y: 0.13, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw },
     ekstrem:  { label: 'Dans le fauteuil', clip: 'Sitting_Idle_Loop',   y: 0.46, face: 'happy',   pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw },
     usm:      { label: 'Un vinyle',        clip: 'Idle_Loop',           y: 0.0, face: 'happy',   ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true },
-    alocasia: { label: 'J\u2019arrose l\u2019alocasia', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [-1.55, 0, 4.3], yaw: -1.57 },
+    alocasia: { label: 'J\u2019arrose l\u2019alocasia', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [4.5, 0, 3.4], yaw: 1.57 },
     cha:      { label: 'Cérémonie du thé', ritual: true, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0 },
     bonsai:   { label: 'J\u2019arrose le bonsaï', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [2.85, 0, 4.55], yaw: -1.57 },
     dracaena: { label: 'J\u2019arrose la plante', clip: 'Idle_Loop', y: 0.0, face: 'neutral', can: true, ov: { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 }, pos: [2.45, 0, -1.55], yaw: 2.3 },
@@ -296,7 +297,7 @@ export async function createRoom(container, bubbleEl) {
   }
 
   function activate(id) {
-    if (id === 'shoji') { cs.toggleShoji(); return; }
+    if (/^shoji\d$/.test(id)) { cs.togglePanel(+id.slice(5)); return; }
     if (lamps[id]) { lamps[id].on = !lamps[id].on; lamps[id].manual = true; return; }
     if (id === 'speaker1' || id === 'speaker2') { music = !music; return; }
     const st = stations[id];
@@ -307,7 +308,7 @@ export async function createRoom(container, bubbleEl) {
     hero.group.position.copy(pos);
     hero.group.rotation.y = st.yaw;
     ritual.stop(); hero.setPost(null); hero.setShoes(true);
-    if (st.ritual) { hero.group.visible = true; ritual.start(); }
+    if (st.ritual) { cs.setPanels(1); hero.group.visible = true; ritual.start(); }
     else hero.play(st.clip, { fade: 0.01 });
     if (!st.ritual) hero.setBase(st.face); hero.talk(!!st.talk); hero.can.visible = !!st.can; hero.setOverride(st.ov || null);
     hero.flash('amazed', 0.6);
@@ -347,7 +348,7 @@ export async function createRoom(container, bubbleEl) {
   /* ─── boucle ─── */
   const opts = { dtCap: 0.05 };
   const clock = new THREE.Clock();
-  let running = true, autoOpened = false;
+  let running = true;
   const startAt = performance.now();
   const v3 = new THREE.Vector3();
   function frame() {
@@ -371,7 +372,6 @@ export async function createRoom(container, bubbleEl) {
     // personnage
     if (ritual.state.active) ritual.update(dt);
     cs.update(dt, t, night);
-    if (!autoOpened && since > 2.6) { autoOpened = true; cs.setShoji(1); }
     // vapeur du bol et de la kama
     { const ud = tea.userData; ud.sBowl.position.copy(ritual.object.position).y += 0.075; ud.sKama.position.copy(ud.fk.position).add(ud.fk.userData.steamAnchor);
       const drunk = ud.bowl.userData.tea.visible ? 1 : 0; updateSteam(ud.sBowl, t, 0.3, 0.1, drunk); updateSteam(ud.sKama, t + 1.3, 0.34, 0.13, 0.8); }
@@ -421,5 +421,5 @@ export async function createRoom(container, bubbleEl) {
   io.observe(container);
   document.addEventListener('visibilitychange', () => { if (document.hidden) running = false; else if (!running) { running = true; clock.getDelta(); requestAnimationFrame(frame); } });
 
-  return { activate, leave, lamps, view, target, opts, hero, ritual, tea, scene, camera, renderer };
+  return { activate, leave, lamps, view, target, opts, hero, ritual, tea, cs, scene, camera, renderer };
 }
