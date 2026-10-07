@@ -47,7 +47,7 @@ export async function createRoom(container, bubbleEl) {
   sun.shadow.radius = 5; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
   scene.add(hemi, sun);
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.3, color: '#3b4a73' }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.3, color: '#3b4a73', depthWrite: false }));
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
   scene.add(ground);
 
@@ -404,7 +404,7 @@ export async function createRoom(container, bubbleEl) {
   nav.block({ x0: 0.55, x1: 1.15, z0: -2.45, z1: -1.85 });                      // pied du lampadaire (le bras passe au-dessus)
   nav.block({ x0: CS.x - 1.35, x1: CS.x + 1.35, z0: CS.z - 1.8, z1: CS.z + 1.8 });   // plate-forme du thé : on n'y entre que par la porte
   nav.block({ x0: CS.x - 2.05, x1: CS.x + 2.05, z0: CS.z + cs.spec.DK.z0, z1: CS.z + cs.spec.DK.z0 + 1.1 });   // balcon
-  nav.block({ x0: CS.x - 2.1, x1: CS.x + 2.1, z0: CS.z + cs.spec.SEA.z0 - 0.3, z1: 14 });                              // mer
+  nav.block({ x0: CS.x - 3.3, x1: CS.x + 3.3, z0: CS.z + cs.spec.SEA.z0 - 0.3, z1: 14 });                              // mer
   const floorY = (x, z) => {
     if (Math.abs(x - CS.x) < 1.35 && Math.abs(z - CS.z) < 1.8) return cs.spec.RH;
     if (Math.abs(x - CS.x) < 2.05 && z > CS.z + cs.spec.DK.z0 - 0.02 && z < CS.z + cs.spec.DK.z0 + 1.1) return cs.spec.DK.y;
