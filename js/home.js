@@ -56,7 +56,7 @@ export function initHome() {
     const root = document.getElementById(id); if (!root) continue;
     root.innerHTML = `<div class="mq-track">${list.map((p, i) => card(p, i, kind)).join('')}</div>`;
     root.addEventListener('click', (e) => { const b = e.target.closest('.pc'); if (b) open(list[+b.dataset.i], kind); });
-    createMarquee(root, { speed: kind === 'pro' ? 0.7 : 0.55, direction: dir });
+    createMarquee(root);
     if (kind === 'pro') initHoverDiagrams(root, list);
   }
 }
