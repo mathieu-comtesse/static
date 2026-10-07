@@ -111,6 +111,45 @@ export async function createCharacter({
   const parse = (b) => new Promise((res, rej) => loader.parse(b, '', res, rej));
   const [characterGltf, animGltf] = await Promise.all([parse(modelBuffer), parse(animBuffer)]);
 
+  // JEAN_BLENDER : le bas du jean est prolongé sous Blender (tools/blender_jean.py) pour tomber sur les chaussures, avec un évasement et un ourlet.
+  // La géométrie des maillages « legs » est remplacée ; les poids de peau sont remappés par nom d'os vers le squelette du modèle.
+  try {
+    const jeanGltf = await parse(await loadBuffer('assets/jean-legs.glb'));
+    const src = [], dst = [];
+    jeanGltf.scene.traverse((o) => { if (o.isSkinnedMesh) src.push(o); });
+    characterGltf.scene.traverse((o) => { if (o.isSkinnedMesh && /^legs/.test(o.name)) dst.push(o); });
+    if (src.length && dst.length) {
+      const sNames = src[0].skeleton.bones.map((b) => b.name), dNames = dst[0].skeleton.bones.map((b) => b.name);
+      const remap = sNames.map((n) => Math.max(0, dNames.indexOf(n)));
+      for (const d of dst) {
+        const m = src.find((q) => q.material?.name === d.material?.name); if (!m) continue;
+        const g = m.geometry.clone(), si = g.attributes.skinIndex;
+        for (let i = 0; i < si.count; i++) { si.setXYZW(i, remap[si.getX(i)], remap[si.getY(i)], remap[si.getZ(i)], remap[si.getW(i)]); }
+        d.geometry = g; d.frustumCulled = false;
+      }
+    }
+  } catch (_) {}
+
+  // TSHIRT_BLENDER : la chemise (veste) est retirée, remplacée par un T-shirt à manches courtes ; le bras droit est tatoué en noir, bras et main (tools/blender_tshirt_arm.py).
+  // Le modèle Sketchfab demandé n'est pas téléchargeable (choix de l'auteur) : le T-shirt est modélisé sous Blender à partir du torse existant.
+  try {
+    const tg = await parse(await loadBuffer('assets/tshirt-arm.glb'));
+    const src = [], old = [], ref = [];
+    tg.scene.traverse((o) => { if (o.isSkinnedMesh) src.push(o); });
+    characterGltf.scene.traverse((o) => { if (/^(jacket|arm|shirt|id|clip)(_\d+)?$/.test(o.name)) old.push(o); if (o.isSkinnedMesh && /^legs/.test(o.name)) ref.push(o); });
+    if (src.length && ref.length) {
+      const dSk = ref[0].skeleton, dNames = dSk.bones.map((b) => b.name), sNames = src[0].skeleton.bones.map((b) => b.name);
+      const remap = sNames.map((n) => Math.max(0, dNames.indexOf(n)));
+      old.forEach((o) => o.removeFromParent());
+      for (const sm of src) {
+        const g = sm.geometry.clone(), si = g.attributes.skinIndex;
+        for (let i = 0; i < si.count; i++) si.setXYZW(i, remap[si.getX(i)], remap[si.getY(i)], remap[si.getZ(i)], remap[si.getW(i)]);
+        const m = new THREE.SkinnedMesh(g, sm.material); m.name = sm.name; m.frustumCulled = false;
+        characterGltf.scene.add(m); m.bind(dSk, ref[0].bindMatrix);
+      }
+    }
+  } catch (_) {}
+
   // NB992_OPTIONAL : le modèle New Balance 992 (Sketchfab) se place dans assets/nb992.glb. Sans ce fichier, les chaussures d'origine restent.
   let nb992Gltf = null;
   try { nb992Gltf = await parse(await loadBuffer('assets/nb992.glb')); } catch (_) {}
