@@ -397,7 +397,7 @@ export async function createRoom(container, bubbleEl) {
     if (drag && drag.moved <= 6 && performance.now() - drag.t < 500) {
       if (crate.isOpen) { ndcOf(e.clientX, e.clientY); const i = crate.indexAt(ray.ray); if (i >= 0) { crate.setSel(i); playTrack(i); drag = null; return; } }
       const id = pickIdAt(e.clientX, e.clientY);
-      if (id) activate(id); else if (crate.isOpen) openCrate(false);
+      if (id) activate(id); else if (crate.isOpen && !jukebox.isOn) openCrate(false);      // tiroir laissé ouvert tant que la musique joue
     }
     drag = null; el.style.cursor = hovered ? 'pointer' : 'grab';
   };
@@ -623,8 +623,7 @@ export async function createRoom(container, bubbleEl) {
     if (v) { tgt.copy(crateFocus); view.tZoom = 6; } else { tgt.copy(home); view.tZoom = 1; }
   }
   function playTrack(i) {
-    openCrate(false);
-    jukebox.play(i);                                           // la musique part tout de suite, le personnage rejoint la platine en parallèle
+    jukebox.play(i);                                           // le tiroir reste ouvert pendant la diffusion ; seul un clic sur le tiroir, le bouton ou Échap le referme
     if (!(director.current === stations.usm && director.mode === 'activity')) goTo('usm');
   }
   const card = document.createElement('div'); card.className = 'sleeve-card'; container.appendChild(card);
@@ -636,7 +635,7 @@ export async function createRoom(container, bubbleEl) {
     else if (e.key === 'Enter' && crate.sel >= 0) { e.preventDefault(); playTrack(crate.sel); }
     else if (e.key === 'Escape') openCrate(false);
   });
-  const goTo = (id, cb) => { afterEnter = cb || null; if (id === 'usm' && crate.isOpen) openCrate(false); director.go(stations[id]); };
+  const goTo = (id, cb) => { afterEnter = cb || null; director.go(stations[id]); };
 
   let appOpen = false;
   function openApp(kind, pos, zoom) {
