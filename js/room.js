@@ -413,20 +413,19 @@ export async function createRoom(container, bubbleEl) {
 
   /* ─── stations du personnage ─── */
   const seat = (x, z, yaw, back) => { const v = new THREE.Vector3(0, 0, back).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw); return [x + v.x, 0, z + v.z]; };
-  const HS = 0.9;                                                    // le personnage est un peu plus petit que les meubles : il tient dans les assises
   const deskYaw = -Math.PI / 2 + 0.15, ekYaw = -0.45;
   const can = { lean: 0.08, armR: -1.3, foreR: -0.4, head: 0.2 };
   const TVBOX = { obj: retro.group };
   let afterEnter = null, actSince = 0, actMode = '';
   const S = (o) => Object.assign({ face: 'neutral', y: 0 }, o);
   const stations = {
-    desk:     S({ label: 'Travailler au bureau', clip: 'Driving_Loop', y: 0, lift: 0.05, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw, approach: [-2.05, 1.05], noFace: true, think: { obj: deskSet, tiltDeg: 24, scale: 1.05, yaw: -52 } }),
-    ekstrem:  S({ label: 'Se poser dans le fauteuil', clip: 'Sitting_Idle_Loop', y: 0, lift: 0.05, face: 'happy', pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw, approach: [1.85, -0.05], noFace: true, think: { obj: ek, tiltDeg: 30 } }),
+    desk:     S({ label: 'Travailler au bureau', clip: 'Driving_Loop', y: 0.16, face: 'neutral', pos: seat(-2.15, 0.3, deskYaw, -0.06), yaw: deskYaw, approach: [-2.05, 1.05], noFace: true, think: { obj: deskSet, tiltDeg: 24, scale: 1.05, yaw: -52 } }),
+    ekstrem:  S({ label: 'Se poser dans le fauteuil', clip: 'Sitting_Idle_Loop', y: 0.32, face: 'happy', pos: seat(2.3, -0.95, ekYaw, -0.14), yaw: ekYaw, approach: [1.85, -0.05], noFace: true, think: { obj: ek, tiltDeg: 30 } }),
     usm:      S({ label: 'Écouter un vinyle', clip: 'Idle_Loop', face: 'happy', ov: { lean: 0.3, armR: -0.95, foreR: -0.35, armL: -0.2, head: 0.25 }, pos: [-1.0, 0, -1.7], yaw: Math.PI, music: true, think: { obj: tt, tiltDeg: 28, scale: 1.1 } }),
     alocasia: S({ label: 'Arroser l\u2019alocasia', clip: 'Idle_Loop', maxMs: 12000, can: true, ov: can, pos: [-2.0, 0, 3.25], yaw: -1.57, think: { obj: alo, tiltDeg: 8, scale: 1.2 } }),
     bonsai:   S({ label: 'Arroser le bonsa\u00ef', clip: 'Idle_Loop', maxMs: 12000, can: true, ov: can, pos: [2.85, 0, 4.55], yaw: -1.57, think: { obj: bonsai, tiltDeg: 20, scale: 1.0 } }),
     dracaena: S({ label: 'Arroser le dragonnier', clip: 'Idle_Loop', maxMs: 12000, can: true, ov: can, pos: [2.2, 0, -1.95], yaw: 2.27, think: { obj: dra, tiltDeg: 8, scale: 1.2 } }),
-    sofa:     S({ label: 'Jouer \u00e0 la console', clip: 'Driving_Loop', y: 0, lift: 0.05, face: 'happy', pos: [0.35, 0, 4.42], yaw: Math.PI, approach: [0.35, 3.75], noFace: true, tv: true, think: TVBOX }),
+    sofa:     S({ label: 'Jouer \u00e0 la console', clip: 'Driving_Loop', y: 0.22, face: 'happy', pos: [0.35, 0, 4.42], yaw: Math.PI, approach: [0.35, 3.75], noFace: true, tv: true, think: TVBOX }),
     cha:      S({ label: 'C\u00e9r\u00e9monie du th\u00e9', ritual: true, maxMs: 34000, y: TEA.y + 0.125, pos: [TEA.x, 0, TEA.z], yaw: 0, approach: [CS.x, TEA.z], think: { obj: tea, tiltDeg: 32, scale: 1.0 } }),
   };
   for (const st of Object.values(stations)) if (!st.approach) st.approach = nav.nearest(st.pos[0], st.pos[2]);
@@ -716,19 +715,17 @@ export async function createRoom(container, bubbleEl) {
       hero.update(dt, t);
       { const cur = director.current;
         const seated = cur && director.mode === 'activity' && (cur.clip === 'Driving_Loop' || cur.clip === 'Sitting_Idle_Loop');
-        if (seated && hero.model && modelBaseY !== null) hero.model.position.y = modelBaseY + (cur.lift || 0) / HS;
-        if (seated && hero.plantSeatedFeet) hero.plantSeatedFeet(hero.group.position.y + 0.01);
+        if (seated && hero.plantSeatedFeet) hero.plantSeatedFeet(floorY(hero.group.position.x, hero.group.position.z) + 0.01);
       }
       // pieds au sol quand il est debout ou marche (le rig importé a sa propre hauteur de bassin)
       hero.setLean(director.current && director.mode === 'activity' && (director.current.clip === 'Driving_Loop' || director.current.clip === 'Sitting_Idle_Loop' || director.current.ritual) ? 0 : 0);
       { const cur = director.current, seated = cur && (cur.clip === 'Driving_Loop' || cur.clip === 'Sitting_Idle_Loop' || cur.ritual) && director.mode === 'activity';
         if (hero.model && director.mode !== 'carried') {
           if (modelBaseY === null) modelBaseY = hero.model.position.y;
-          if (seated && !cur.ritual) hero.model.position.y = modelBaseY + (cur.lift || 0) / HS;
-          else if (seated || (director.current && director.mode !== 'activity' && cur && (cur.clip === 'Driving_Loop' || cur.clip === 'Sitting_Idle_Loop'))) hero.model.position.y = modelBaseY;
+          if (seated || (director.current && director.mode !== 'activity' && cur && (cur.clip === 'Driving_Loop' || cur.clip === 'Sitting_Idle_Loop'))) hero.model.position.y = modelBaseY;
           else { hero.model.position.y = modelBaseY; hero.group.updateMatrixWorld(true); const lo = Math.min(hero.wp('ball_l').y, hero.wp('ball_r').y) - hero.group.position.y; hero.model.position.y = modelBaseY - (lo - 0.04); }
         } }
-      const s = hero.group.scale.x; hero.group.scale.setScalar(s + (HS - s) * (1 - Math.exp(-dt * 10)));
+      const s = hero.group.scale.x; hero.group.scale.setScalar(s + (1 - s) * (1 - Math.exp(-dt * 10)));
       bubbleT += dt;
       const showB = !!thoughtFor && director.mode !== 'carried' && !appOpen && bubbleT > 0.35;
       thoughtEl.classList.toggle('show', showB);
