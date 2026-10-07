@@ -225,7 +225,7 @@ export async function createRoom(container, bubbleEl) {
   const view = { az: 36 * DEG, el: 26 * DEG, zoom: 1, tAz: 36 * DEG, tEl: 26 * DEG, tZoom: 1 };
   const target = new THREE.Vector3(0.1, 0.8, -0.2), tgt = target.clone(), home = target.clone();
   const DEF = { az: 36 * DEG, el: 26 * DEG, zoom: 1 };
-  let fit = 1, W = 1, H = 1;
+  let fit = 1, W = 1, H = 1, halfW = 1, panU = 0, panT = 0;
 
   let scrollOff = 0, scrollT = 0;                                  // la caméra baisse quand l'en-tête défile (comme la scène de référence)
   function orient() {
@@ -239,10 +239,14 @@ export async function createRoom(container, bubbleEl) {
   }
   function computeFit() {
     const save = { az: view.az, el: view.el };
+    const gp = cs.garden.parent; gp.remove(cs.garden);                  // le jardin n'a pas de bord : il ne compte ni dans le centrage ni dans le cadrage
     view.az = DEF.az; view.el = DEF.el; orient();
     items.forEach((i) => { i.obj.position.copy(i.base); });
     world.updateMatrixWorld(true);
-    const inv0 = new THREE.Box3().setFromObject(world); inv0.getCenter(target); tgt.copy(target); home.copy(target);
+    const inv0 = new THREE.Box3().setFromObject(world);
+    const gz = [[CS.x - 4.4, CS.z - 0.8], [CS.x + 4.4, CS.z - 0.8], [CS.x - 4.4, CS.z + 5.4], [CS.x + 4.4, CS.z + 5.4]];     // partie dense du jardin (le reste se dissout)
+    for (const [x, z] of gz) inv0.expandByPoint(new THREE.Vector3(x, 0, z));
+    inv0.getCenter(target); tgt.copy(target); home.copy(target);
     orient();
     const inv = camera.matrixWorldInverse, v = new THREE.Vector3(), bb = new THREE.Box3();
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
@@ -253,9 +257,11 @@ export async function createRoom(container, bubbleEl) {
         x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
       }
     }
+    for (const [x, z] of gz) { v.set(x, 0, z).applyMatrix4(inv); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
     const mx = Math.max(Math.abs(x0), Math.abs(x1)), my = Math.max(Math.abs(y0), Math.abs(y1)), aspect = W / H;
-    // la scène doit tenir dans 94 % de la largeur et 88 % de la hauteur
-    fit = Math.max(my / 0.88, mx / 0.94 / aspect);
+    gp.add(cs.garden);
+    // cadrage sur la hauteur seulement : sur écran large le jardin comble les côtés, sur téléphone la scène dépasse (glisser pour la parcourir)
+    fit = my / 0.9; halfW = mx; void aspect;
     view.az = save.az; view.el = save.el;
   }
   let resScale = 1;                                           // résolution adaptative : baisse si l'image met trop de temps, remonte si tout va bien
@@ -271,7 +277,10 @@ export async function createRoom(container, bubbleEl) {
   }
   function applyFrustum() {
     const aspect = W / H, h = fit / view.zoom;
-    camera.left = -h * aspect; camera.right = h * aspect; camera.top = h; camera.bottom = -h;
+    const lim = Math.max(0, halfW - h * aspect * 0.4);                  // panoramique : seulement quand la scène dépasse de l'écran
+    panT = Math.min(lim, Math.max(-lim, panT)); if (view.zoom > 1.15 || view.tZoom > 1.15) panT = 0;
+    panU += (panT - panU) * 0.2;
+    camera.left = -h * aspect + panU; camera.right = h * aspect + panU; camera.top = h; camera.bottom = -h;
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(container);
@@ -345,7 +354,8 @@ export async function createRoom(container, bubbleEl) {
         if (hdrag.lifted) { const g = groundAt(e.clientX, e.clientY); if (g) director.carry(g.x, g.z); zoneHover(e.clientX, e.clientY); }
       } else if (drag) {
         drag.moved += Math.abs(dx) + Math.abs(dy);
-        if (drag.moved > 6) {
+        if (drag.moved > 6 && W / H < 1.1) { panT -= dx * (2 * (fit / view.zoom) * (W / H)) / W; }          // téléphone : un doigt fait défiler la scène
+        else if (drag.moved > 6) {
           view.tAz -= dx * 0.006;
           view.tEl = Math.min(58 * DEG, Math.max(14 * DEG, view.tEl + dy * 0.004));
           el.style.cursor = 'grabbing';
