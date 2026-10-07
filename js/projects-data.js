@@ -4,8 +4,22 @@ import { CV, PERSO, PRO } from './data.js';
 const byId = Object.fromEntries(PRO.map((p) => [p.id, p]));
 const P = (id, title, sub, gain, unit, img, pro) => ({ id, title, sub, gain, unit, img, pro: byId[pro] || null });
 
+
+// Comment ça marche : 4 ou 5 étapes par projet (affichées en schéma au survol). Faits tirés du CV.
+const DIAG = {
+  pa: [['Dépôt', 'Le plan de prévention arrive'], ['Lecture', 'Champs extraits automatiquement'], ['Classement', 'Rangé et saisi au listing'], ['Alerte', 'Relances avant l’échéance']],
+  cerfa: [['Dépôt du lot', 'Fiches CERFA et attestations (PDF)'], ['Lecture', 'Pages 1 et 2, cases lues sur le rendu'], ['Contrôles', 'Doublons, non-conformités, retards'], ['Indicateurs', 'KPI cliquables et filtres'], ['Export', 'Excel filtré et surligné']],
+  vre: [['Rapports PDF', 'Vérifications électriques'], ['Comptage', 'Équipements, départs, écarts'], ['Vérification', 'Chaque total reste sous contrôle'], ['Injection', 'Classeur de suivi SharePoint']],
+  studio: [['Modèle', 'Un exemple du document'], ['Tracé', 'Repérer les zones à lire'], ['Test', 'Essai sur des documents réels'], ['Extracteur', 'Page HTML autonome'], ['Diffusion', 'Fichier ou exécutable, 100 % local']],
+  powerbi: [['Sources', 'PDF, Excel, SharePoint'], ['Power Query', 'Préparation et contrôle'], ['Modèle et DAX', 'Mesures et indicateurs'], ['Pages HTML', 'Générées dans les mesures'], ['Portail', 'Plan, PDF et échéance en 10 s']],
+  suivi: [['GMAO', 'Ordres de travail'], ['Exports', 'Autres logiciels et sites'], ['Rattachement', 'Équipement et bâtiment'], ['Interface unique', 'Recherche en quelques secondes']],
+  gares: [['Sources', 'GMAO, référentiel, SharePoint'], ['Modèle', '19 tables, 159 mesures'], ['Règles', 'Criticité et conformité calculées'], ['Fiche', 'Gare, équipement, maintenance']],
+  terrain: [['Gemba', 'Observer sur le terrain'], ['Faits', 'Entretiens et preuves'], ['État des lieux', 'Processus EPM / EPTx'], ['EPM light', 'Processus simplifié'], ['Arbitrage', 'Décision en réunion d’agence']],
+  charte: [['Charte UI', 'Règles visuelles communes'], ['Composants', 'Boutons, tableaux, indicateurs'], ['Outils', 'CERFA, VRE, Studio, PP'], ['Local', 'Aucune donnée hors du poste']],
+};
+
 // Chaque carte : un gain de TEMPS et un gain d'ARGENT (taux horaire de 104,74 € utilisé dans le CV), par process et par projet. 'ctx' = ce que le chiffre mesure.
-const G = (id, title, sub, time, timeCtx, money, moneyCtx, img, pro, extra = '') => ({ id, title, sub, time, timeCtx, money, moneyCtx, extra, img, pro: byId[pro] || null });
+const G = (id, title, sub, time, timeCtx, money, moneyCtx, img, pro) => ({ id, title, sub, time, timeCtx, money, moneyCtx, img, pro: byId[pro] || null, diag: DIAG[id] || [] });
 
 export const PRO_CARDS = [
   G('pa', 'Power Automate · chaîne des PP', 'Dépôt, classement, alerte, relance', '40 min', 'de contrôles et de saisie rendues chaque jour', '15 700 €', 'par an, soit ≈ 17 € et 10 min par plan de prévention', 'assets/projets/pp.jpg', 'projet-3'),

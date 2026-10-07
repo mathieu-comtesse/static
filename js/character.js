@@ -318,7 +318,7 @@ export async function createCharacter({
   const applyWorldRot = (bone, qWorld) => {
     bone.parent.getWorldQuaternion(_pq);
     _M.copy(_pq).invert().multiply(qWorld).multiply(_pq);
-    bone.quaternion.premultiply(_M); group.updateMatrixWorld(true);
+    bone.quaternion.premultiply(_M); bone.updateMatrixWorld(true);       // seulement le sous-arbre de l'os
   };
   const rotChar = (bone, ang, axis = _X) => {
     group.getWorldQuaternion(_qg); _R.setFromAxisAngle(axis, ang);

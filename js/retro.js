@@ -32,7 +32,7 @@ export function createRetroSet() {
   sg.computeVertexNormals();
   const tex = new THREE.CanvasTexture(Object.assign(document.createElement('canvas'), { width: 320, height: 240 }));
   tex.colorSpace = THREE.SRGBColorSpace;
-  const screenMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+  const screenMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }); screenMat.userData.unique = true;
   const screen = new THREE.Mesh(sg, screenMat); screen.position.set(-0.04, Y0 + H * 0.52, frontZ + 0.015); screen.userData.noInk = true; tv.add(screen);
   const bezel = new THREE.Mesh(new THREE.RingGeometry(0.001, 0.001, 4), screenMat); bezel.visible = false; tv.add(bezel);
   for (const [w, h, x, y] of [[SW + 0.05, 0.02, 0, SH / 2 + 0.012], [SW + 0.05, 0.02, 0, -SH / 2 - 0.012], [0.02, SH, -SW / 2 - 0.012, 0], [0.02, SH, SW / 2 + 0.012, 0]])
@@ -138,7 +138,7 @@ export function createRetroSet() {
     }
     tex.needsUpdate = true;
   }
-  const litMat = rocker.material;
+  const litMat = rocker.material; litMat.userData.unique = true;
   const api = {
     strip, cordStart, get stripOn() { return st.strip; },
     setStrip(v) { st.strip = v; litMat.emissiveIntensity = v ? 1.6 : 0; litMat.color.set(v ? '#ff5a2a' : '#6b2a18'); if (!v) this.powerOff(); },
