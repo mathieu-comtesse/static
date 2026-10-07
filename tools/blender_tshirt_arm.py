@@ -23,7 +23,7 @@ arm_obj = next(o for o in bpy.context.scene.objects if o.type == 'ARMATURE')
 body_mat = next(i for i, m in enumerate(shirt.data.materials) if m.name == 'Material #577')
 bm = bmesh.new(); bm.from_mesh(shirt.data); bm.verts.ensure_lookup_table()
 deform = bm.verts.layers.deform.verify()
-SEG, RINGS_N = 14, 7
+SEG, RINGS_N = 14, 9
 for side in ('l', 'r'):
     # axe du bras : de l'épaule au coude, mesuré sur les sommets du bras nu pondérés « upperarm » / « lowerarm » (les os du glTF importé sont tournés)
     sx = 1 if side == 'l' else -1
@@ -31,14 +31,15 @@ for side in ('l', 'r'):
     pu = [v.co.copy() for v in arm.data.vertices if v.groups and nm[max(v.groups, key=lambda g: g.weight).group] == 'upperarm_' + side]
     pl = [v.co.copy() for v in arm.data.vertices if v.groups and nm[max(v.groups, key=lambda g: g.weight).group] == 'lowerarm_' + side]
     cen = lambda pts: sum(pts, Vector()) / len(pts)
-    shoulder = cen(pu); shoulder.x = sx * 1.95; elbow = cen(pl)
+    shoulder = cen(pu); shoulder.x = sx * 1.3; elbow = cen(pl)       # la manche démarre dans le torse : plus de vide à l'épaule une fois la veste retirée
     head = shoulder; axis = (elbow - shoulder).normalized(); length = (elbow - shoulder).length
     print('axe', side, [round(c, 2) for c in head], [round(c, 2) for c in axis], round(length, 2))
     u = axis.cross(Vector((0, 0, 1))); u = u.normalized() if u.length > 1e-4 else Vector((0, 1, 0)); w = axis.cross(u).normalized()
     rings = []
     for k in range(RINGS_N):
-        t = 0.06 + 0.60 * k / (RINGS_N - 1)                       # du pied de l'épaule jusqu'au milieu du bras
-        c = head + axis * (length * t); r = 0.62 - 0.05 * k / (RINGS_N - 1) + (0.08 if k == 0 else 0)
+        t = 0.0 + 0.66 * k / (RINGS_N - 1)                       # du pied de l'épaule jusqu'au milieu du bras
+        c = head + axis * (length * t); w_ = max(0.0, 1.0 - k / 3.0)                        # les premiers anneaux forment une épaulette : plus larges et relevés
+        r = 0.64 + 0.40 * w_; c = c + Vector((0, 0, 0.34 * w_))
         ring = []
         for j in range(SEG):
             a = 2 * math.pi * j / SEG

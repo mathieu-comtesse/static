@@ -144,6 +144,7 @@ export async function createCharacter({
       for (const sm of src) {
         const g = sm.geometry.clone(), si = g.attributes.skinIndex;
         for (let i = 0; i < si.count; i++) si.setXYZW(i, remap[si.getX(i)], remap[si.getY(i)], remap[si.getZ(i)], remap[si.getW(i)]);
+        (Array.isArray(sm.material) ? sm.material : [sm.material]).forEach((q) => { if (/^Material #(82|577|611)$/.test(q.name)) q.side = THREE.DoubleSide; });      // faces du torse et des manches vues des deux côtés : plus de trou à l'épaule
         const m = new THREE.SkinnedMesh(g, sm.material); m.name = sm.name; m.frustumCulled = false;
         characterGltf.scene.add(m); m.bind(dSk, ref[0].bindMatrix);
       }
@@ -255,7 +256,7 @@ export async function createCharacter({
   const shoeVisuals = [], sockVisuals = [], shoeParts = [], trouserCuffs = [];
   let shoesOn = true;
   if (originalLegs) originalLegs.visible = true;
-  if (shoes) shoes.traverse((o) => { if (o.isMesh && /^shoes_(?:9|10|11|12)$/.test(o.name)) { o.visible = true; trouserCuffs.push(o); } });
+  if (shoes) shoes.traverse((o) => { if (o.isMesh && /^shoes_(?:9|10|11|12)$/.test(o.name)) { o.visible = false; trouserCuffs.push(o); } });
   if (shoes) shoes.traverse((o) => { if (o.isMesh && /^shoes_[1-8]$/.test(o.name)) shoeParts.push(o); });   // chaussures d'origine ; shoes_9-12 : chevilles d'origine, remplacées par le revers du pantalon
   // Monte la paire de New Balance 992 (assets/nb992.glb : deux nœuds nb_left / nb_right, orteils vers +Z, semelle à y = 0, ~29 cm) sur les os des pieds.
   // La pose de référence est l'Idle : dans cette pose le pied est à plat, on y place chaque chaussure puis on la fige dans le repère de l'os.
@@ -487,7 +488,7 @@ export async function createCharacter({
       else if (shoes) shoes.visible = shoesOn;
       sockVisuals.forEach((o) => { o.visible = !shoesOn; });
       if (originalLegs) originalLegs.visible = true;
-      trouserCuffs.forEach((o) => { o.visible = true; });
+      trouserCuffs.forEach((o) => { o.visible = false; });         // chevilles d'origine : le jean prolongé couvre déjà la cheville
     },
     flash(kind, secs = 0.7) { flashKind = kind; flash = secs; },
     talk(on) { talking = on; },
